@@ -36,7 +36,7 @@ import net.floodlightcontroller.packet.ICMP;
 import net.floodlightcontroller.packet.IPacket;
 import net.floodlightcontroller.packet.IPv4;
 
-public class VirtualAddress implements IFloodlightModule, IOFMessageListener {
+public class TrafficPrioritizer implements IFloodlightModule, IOFMessageListener {
 	
 	protected IFloodlightProviderService floodlightProvider; // Reference to the provider
 	protected static Logger log;
@@ -47,7 +47,7 @@ public class VirtualAddress implements IFloodlightModule, IOFMessageListener {
 	
 	@Override
 	public String getName() {
-		return VirtualAddress.class.getSimpleName();
+		return TrafficPrioritizer.class.getSimpleName();
 	}
 
 	@Override
@@ -72,7 +72,7 @@ public class VirtualAddress implements IFloodlightModule, IOFMessageListener {
 		
 		// Print the source MAC address
 		Long sourceMACHash = Ethernet.toLong(eth.getSourceMACAddress().getBytes());
-		System.out.printf("MAC Address: {%s} seen on switch: {%s}\n",
+		System.out.printf("TRAFFIC PRIORITIZER MAC Address: {%s} seen on switch: {%s}\n",
 		HexString.toHexString(sourceMACHash),
 		sw.getId());
 			
@@ -210,6 +210,8 @@ public class VirtualAddress implements IFloodlightModule, IOFMessageListener {
 		
 		sw.write(pob.build());
 	}
+	
+	
 
 	@Override
 	public Collection<Class<? extends IFloodlightService>> getModuleServices() {
@@ -234,7 +236,7 @@ public class VirtualAddress implements IFloodlightModule, IOFMessageListener {
 	@Override
 	public void init(FloodlightModuleContext context) throws FloodlightModuleException {
 		floodlightProvider = context.getServiceImpl(IFloodlightProviderService.class);
-		log = LoggerFactory.getLogger(MACTracker.class);
+		log = LoggerFactory.getLogger(TrafficPrioritizer.class);
 	}
 
 	@Override
