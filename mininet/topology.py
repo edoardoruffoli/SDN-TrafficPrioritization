@@ -5,6 +5,7 @@
 from __future__ import print_function
 
 import os
+import time
 from mininet.topo import Topo
 from mininet.net import Mininet
 from mininet.node import Node
@@ -53,43 +54,13 @@ def topology():
         s1.start([c1])
         s2.start([c1])
 
-        # queues
-	"""
-	to run:
-	
-	ovs-vsctl set port s1-eth4 qos=@newqos -- --id=@newqos create qos type=linux-htb other-config:max-rate=10000000 queues:0=@q0, queues:1=@q1, queues:2=@q2 -- --id=@q0, create queue other-config:priority=7 -- --id=@q1, create queue dscp=10 other-config:priority=1 -- --id=@q2 create queue dscp=46 other-config:priority=2
-
-	"""
+        # queues	
+	time.sleep(1)	# wait for the switch to start
 	
 	s1.cmd('ovs-vsctl --all destroy Qos')
 	s1.cmd('ovs-vsctl --all destroy Queue')
+	s1.cmd('ovs-vsctl set port s1-eth4 qos=@newqos -- --id=@newqos create qos type=linux-htb queues:0=@q0, queues:1=@q1, queues:2=@q2 -- --id=@q0, create queue other-config:priority=7 -- --id=@q1, create queue dscp=10 other-config:priority=1 -- --id=@q2 create queue dscp=46 other-config:priority=2')
 
-	s1.cmd('sudo ovs-vsctl set port s1-eth4 qos=@newqos -- \
-	                    --id=@newqos create qos type=linux-htb \
-				queues:0=@q0, queues:1=@q1, queues:2=@q2 -- \
-			    --id=@q0, create queue other-config:priority=7 -- \
-	                    --id=@q1, create queue dscp=10 other-config:priority=1 -- \
-	                    --id=@q2 create queue dscp=46 other-config:priority=2 ')
-
-	"""
-        switches = net.switches
-	print('\n')
-
-	for sw in switches:
-		print('Creating qos queues on ', sw.name)
-		sw.cmd('sudo %s ovs-vsctl -- --all destroy Qos')
-		sw.cmd('sudo %s ovs-vsctl -- --all destroy Queue')
-
-        	for intf in sw.intfs.values():
-                     	sw.cmd( 'sudo ovs-vsctl set port %s qos=@newqos -- \
-	                    --id=@newqos create QoS type=linux_htb \
-				queues:0=@q0, queues:1=@q1, queues:2=@q2 -- \
-			    --id=@q0, create queue other-config:priority=7 -- \
-	                    --id=@q1, create queue dscp=10 other-config:priority=1 -- \
-	                    --id=@q2 create queue dscp=46 other-config:priority=2 ' %intf)
-
-	"""
-	
         #net.plotGraph(max_x=100, max_y=100)
 
 	CLI( net )
