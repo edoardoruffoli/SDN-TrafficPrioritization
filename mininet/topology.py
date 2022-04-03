@@ -26,8 +26,8 @@ def topology():
                            port=6653)
 
         info("*** Adding switches\n")
-        s1 = net.addSwitch("s1", cls=OVSKernelSwitch, dpid="00:00:00:00:00:00:00:01", protocols="OpenFlow13")
-        s2 = net.addSwitch("s2", cls=OVSKernelSwitch, dpid="00:00:00:00:00:00:00:02", protocols="OpenFlow13")
+        s1 = net.addSwitch("s1", cls=OVSKernelSwitch, dpid="00:00:00:00:00:00:00:01", protocols="OpenFlow13", datapath="user")		# user mode needed for meters support
+        s2 = net.addSwitch("s2", cls=OVSKernelSwitch, dpid="00:00:00:00:00:00:00:02", protocols="OpenFlow13", datapath="user")
    
 
         info("*** Adding hosts\n")
@@ -60,6 +60,9 @@ def topology():
 	s1.cmd('ovs-vsctl --all destroy Qos')
 	s1.cmd('ovs-vsctl --all destroy Queue')
 	s1.cmd('ovs-vsctl set port s1-eth4 qos=@newqos -- --id=@newqos create qos type=linux-htb queues:0=@q0, queues:1=@q1, queues:2=@q2 -- --id=@q0, create queue other-config:priority=7 -- --id=@q1, create queue dscp=10 other-config:priority=1 -- --id=@q2 create queue dscp=46 other-config:priority=2')
+
+	# allow meters
+	# sh ovs-vsctl set s1 bridge datapath_type=netdev
 
         #net.plotGraph(max_x=100, max_y=100)
 
