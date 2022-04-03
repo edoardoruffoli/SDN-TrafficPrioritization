@@ -226,17 +226,16 @@ public class TrafficPrioritizer implements IFloodlightModule, IOFMessageListener
                 .setRate(bandwidth)
                 .setBurstSize(burstSize);
         
-        OFMeterMod.Builder meterModBuilder = factory.buildMeterMod()
-            .setMeterId(meterId)
-            .setCommand(OFMeterModCommand.ADD)
-            .setFlags(flags);
-            
         OFMeterBand band = bandBuilder.build();
         List<OFMeterBand> bands = new ArrayList<OFMeterBand>();
         bands.add(band);
         
         /* Create meter modification message */
-        meterModBuilder.setMeters(bands).build();
+        OFMeterMod.Builder meterModBuilder = factory.buildMeterMod()
+            .setMeterId(meterId)
+            .setCommand(OFMeterModCommand.ADD)
+            .setFlags(flags)
+            .setMeters(bands);
   
         /* Send meter modification message to switch */
         sw.write(meterModBuilder.build());
