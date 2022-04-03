@@ -2,11 +2,14 @@ package net.floodlightcontroller.unipi;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.TimeUnit;
@@ -15,6 +18,9 @@ import org.projectfloodlight.openflow.protocol.OFFactories;
 import org.projectfloodlight.openflow.protocol.OFFactory;
 import org.projectfloodlight.openflow.protocol.OFFlowMod;
 import org.projectfloodlight.openflow.protocol.OFMessage;
+import org.projectfloodlight.openflow.protocol.OFMeterFlags;
+import org.projectfloodlight.openflow.protocol.OFMeterMod;
+import org.projectfloodlight.openflow.protocol.OFMeterModCommand;
 import org.projectfloodlight.openflow.protocol.OFPacketIn;
 import org.projectfloodlight.openflow.protocol.OFPacketOut;
 import org.projectfloodlight.openflow.protocol.OFPacketQueue;
@@ -28,6 +34,8 @@ import org.projectfloodlight.openflow.protocol.OFVersion;
 import org.projectfloodlight.openflow.protocol.action.OFAction;
 import org.projectfloodlight.openflow.protocol.action.OFActionOutput;
 import org.projectfloodlight.openflow.protocol.match.MatchField;
+import org.projectfloodlight.openflow.protocol.meterband.OFMeterBand;
+import org.projectfloodlight.openflow.protocol.meterband.OFMeterBandDrop;
 import org.projectfloodlight.openflow.protocol.queueprop.OFQueueProp;
 import org.projectfloodlight.openflow.protocol.queueprop.OFQueuePropMaxRate;
 import org.projectfloodlight.openflow.protocol.queueprop.OFQueuePropMinRate;
@@ -188,7 +196,12 @@ public class TrafficPrioritizer implements IFloodlightModule, IOFMessageListener
 	public boolean registerFlow(QoSFlow qosflow) {
 		if (!flowManager.addFlow(qosflow))
 			return false;
-
+        
+		// ADD METERS OFMeterBandDscpRemark
+		
+        IOFSwitch sw = switchService.getSwitch(DatapathId.of(1)); /* The IOFSwitchService */
+		installMeter(sw, 10000, 100, 1);
+		
 		return true;	
 	}
 	
@@ -200,12 +213,44 @@ public class TrafficPrioritizer implements IFloodlightModule, IOFMessageListener
 		return true;
 	}
 	
+	private long installMeter(final IOFSwitch sw, final long bandwidth, 
+			final long burstSize, final long meterId) {
+		
+		log.info("installing meter " + meterId + " on switch "+ sw.getId());
+		
+		Set<OFMeterFlags> flags = new HashSet<>(Arrays.asList(OFMeterFlags.KBPS, OFMeterFlags.BURST));
+        OFFactory factory = OFFactories.getFactory(OFVersion.OF_13);
+        
+        /* Create and set meter band */
+        OFMeterBandDrop.Builder bandBuilder = factory.meterBands().buildDrop()
+                .setRate(bandwidth)
+                .setBurstSize(burstSize);
+        
+        OFMeterMod.Builder meterModBuilder = factory.buildMeterMod()
+            .setMeterId(meterId)
+            .setCommand(OFMeterModCommand.ADD)
+            .setFlags(flags);
+            
+        OFMeterBand band = bandBuilder.build();
+        List<OFMeterBand> bands = new ArrayList<OFMeterBand>();
+        bands.add(band);
+        
+        /* Create meter modification message */
+        meterModBuilder.setMeters(bands).build();
+  
+        /* Send meter modification message to switch */
+        sw.write(meterModBuilder.build());
+        
+        return 0;
+	}
+	
 	@Override
 	public Map<String, BigInteger> getNumPacketsHandled() {
+		// Use OFMeterBandStats (?)
 		log.info("Queue statistics requested");
 		Map<String, BigInteger> queueStats = new HashMap();
 		
-		OFFactory factory = switchService.getSwitch(DatapathId.of(1)).getOFFactory();
+		OFFactory factory = OFFactories.getFactory(OFVersion.OF_13);
 		OFQueueStatsRequest sr = factory.buildQueueStatsRequest().build();
 		ListenableFuture<List<OFQueueStatsReply>> future = switchService.getSwitch(DatapathId.of(1)).writeStatsRequest(sr);
 		
