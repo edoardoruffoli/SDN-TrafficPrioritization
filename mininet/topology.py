@@ -18,7 +18,7 @@ from mininet.node import RemoteController, OVSKernelSwitch, Host
 
 def topology():
         
-	net = Mininet( ipBase="10.0.1.0/8" )
+	net = Mininet( ipBase="10.0.0.0/8" )
         info("*** Adding controller\n")
         c1 = net.addController(name="c1", controller=RemoteController,
                            protocol="tcp",

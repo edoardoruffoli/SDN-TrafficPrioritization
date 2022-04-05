@@ -38,9 +38,12 @@ import org.projectfloodlight.openflow.protocol.action.OFActionSetQueue;
 import org.projectfloodlight.openflow.protocol.instruction.OFInstruction;
 import org.projectfloodlight.openflow.protocol.instruction.OFInstructionApplyActions;
 import org.projectfloodlight.openflow.protocol.instruction.OFInstructionMeter;
+import org.projectfloodlight.openflow.protocol.match.Match;
 import org.projectfloodlight.openflow.protocol.match.MatchField;
 import org.projectfloodlight.openflow.protocol.meterband.OFMeterBand;
 import org.projectfloodlight.openflow.protocol.meterband.OFMeterBandDrop;
+import org.projectfloodlight.openflow.protocol.meterband.OFMeterBandDscpRemark;
+import org.projectfloodlight.openflow.protocol.meterband.OFMeterBandExperimenter;
 import org.projectfloodlight.openflow.protocol.queueprop.OFQueueProp;
 import org.projectfloodlight.openflow.protocol.queueprop.OFQueuePropMaxRate;
 import org.projectfloodlight.openflow.protocol.queueprop.OFQueuePropMinRate;
@@ -96,6 +99,13 @@ public class TrafficPrioritizer implements IFloodlightModule, IOFMessageListener
 	// IP and MAC address for our logical load balancer
 	private final static IPv4Address VIRTUAL_IP = IPv4Address.of("8.8.8.8");
 	private final static MacAddress VIRTUAL_MAC = MacAddress.of("00:00:00:00:00:FE");
+	
+    /*
+     * The default rule of a switch is to forward a packet to the controller.
+     * The rules of a switch that implements QoS must have a priority higher 
+     * than one, so that the rules installed by the Forwarding module are ignored.
+     */
+    private final int QOS_SWITCH_DEFAULT_RULE_PRIORITY = 10;
 	
 	@Override
 	public String getName() {
@@ -175,8 +185,6 @@ public class TrafficPrioritizer implements IFloodlightModule, IOFMessageListener
 						
 			// Dissect Packet included in Packet-In
 			IPacket pkt = eth.getPayload();
-			
-			// CHECK METERS (?)
 
 			break;
 		default:
@@ -201,13 +209,15 @@ public class TrafficPrioritizer implements IFloodlightModule, IOFMessageListener
 	public boolean registerFlow(QoSFlow qosflow) {
 		if (!flowManager.addFlow(qosflow))
 			return false;
-        
-		// ADD METERS OFMeterBandDscpRemark
+		
+		// For every switch that implements qos
+		
+		log.info("Registering QoS Flow [source_addr: " + qosflow.getSourceAddress() + " dest: " + qosflow.getDestAddress());
 		
         IOFSwitch sw = switchService.getSwitch(DatapathId.of(1)); /* The IOFSwitchService */
-		installMeter(sw, 10000, 100, 1);
-		
-		installFlow(sw,1);
+        
+		installMeter(sw, 1, qosflow.getBandwidth(), /*burst*/0);		
+		installFlow(sw,1, qosflow);
 		
 		return true;	
 	}
@@ -220,39 +230,44 @@ public class TrafficPrioritizer implements IFloodlightModule, IOFMessageListener
 		return true;
 	}
 	
-	private long installMeter(final IOFSwitch sw, final long bandwidth, 
-			final long burstSize, final long meterId) {
+	/**
+	 * Create and install a meter in a switch.
+	 * @param sw 			the switch in which install the meter.
+	 * @param meterId
+	 * @param rate
+	 * @param burstSize
+	 */
+	
+	private void installMeter(final IOFSwitch sw, final long meterId, final long rate, 
+			final long burstSize) {
 		
-		log.info("installing meter " + meterId + " on switch "+ sw.getId());
+		log.info("Installing meter " + meterId + " on switch "+ sw.getId());
 		
+		OFFactory factory = sw.getOFFactory();
+        
 		Set<OFMeterFlags> flags = new HashSet<>(Arrays.asList(OFMeterFlags.KBPS, OFMeterFlags.BURST));
-        OFFactory factory = OFFactories.getFactory(OFVersion.OF_13);
         
         /* Create and set meter band */
-        OFMeterBandDrop.Builder bandBuilder = factory.meterBands().buildDrop()
-                .setRate(bandwidth)
+        OFMeterBandDrop.Builder bandBuilder = factory.meterBands().buildDrop()	// buildDscpRemark is not supported by OvS
+                .setRate(rate)
+               // .setPrecLevel((short) 14)
                 .setBurstSize(burstSize);
         
-        OFMeterBand band = bandBuilder.build();
-        List<OFMeterBand> bands = new ArrayList<OFMeterBand>();
-        bands.add(band);
-        
         /* Create meter modification message */
-        OFMeterMod meterMod = factory.buildMeterMod()
+        OFMeterMod.Builder meterModBuilder = factory.buildMeterMod()
             .setMeterId(meterId)
             .setCommand(OFMeterModCommand.ADD)
             .setFlags(flags)
-            .setMeters(bands)
-            .build();
+            .setMeters(Collections.singletonList((OFMeterBand) bandBuilder.build()));
   
         /* Send meter modification message to switch */
-        sw.write(meterMod);
+        sw.write(meterModBuilder.build());
         
-        return 0;
+        return;
 	}
 	
-	
-	private long installFlow(final IOFSwitch sw, final long meterId) {
+	private long installFlow(final IOFSwitch sw, final long meterId, QoSFlow qosflow) {
+		
 		List<OFInstruction> instructions = new ArrayList<OFInstruction>();
 		ArrayList<OFAction> actions = new ArrayList<OFAction>();
 		
@@ -265,7 +280,7 @@ public class TrafficPrioritizer implements IFloodlightModule, IOFMessageListener
 		log.info("installing go-to-meter flow instruction " + meterId + " on switch "+ sw.getId());
 		
 		/* Meters only supported in OpenFlow 1.3 and up --> need 1.3+ factory */
-		OFFactory factory = OFFactories.getFactory(OFVersion.OF_13);
+		OFFactory factory = sw.getOFFactory();
 		OFInstructionMeter meter = factory.instructions().buildMeter()
 			.setMeterId(1)
 			.build();
@@ -287,12 +302,18 @@ public class TrafficPrioritizer implements IFloodlightModule, IOFMessageListener
 		instructions.add(meter);
 		instructions.add(output);
 		//actions.add(enqueue);
-		 
+		
+		Match.Builder matchBuilder = sw.getOFFactory().buildMatch();
+		matchBuilder.setExact(MatchField.ETH_TYPE, EthType.IPv4)
+	        .setExact(MatchField.IPV4_SRC, qosflow.getSourceAddress())
+	        .setExact(MatchField.IPV4_DST, qosflow.getDestAddress());
+			 
 		/* Flow will send matched packets to meter ID 1 and then possibly output on port 2 */
 		OFFlowAdd flowAdd = factory.buildFlowAdd()
 		    /* set anything else you need, e.g. match */
 		    .setInstructions(instructions)
 		    //.setActions(actions)
+		    .setMatch(matchBuilder.build())
 		    .build();
 		
 		 /* Send meter modification message to switch */
