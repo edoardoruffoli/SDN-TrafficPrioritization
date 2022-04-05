@@ -16,6 +16,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.projectfloodlight.openflow.protocol.OFFactories;
 import org.projectfloodlight.openflow.protocol.OFFactory;
+import org.projectfloodlight.openflow.protocol.OFFlowAdd;
 import org.projectfloodlight.openflow.protocol.OFFlowMod;
 import org.projectfloodlight.openflow.protocol.OFMessage;
 import org.projectfloodlight.openflow.protocol.OFMeterFlags;
@@ -33,6 +34,10 @@ import org.projectfloodlight.openflow.protocol.OFType;
 import org.projectfloodlight.openflow.protocol.OFVersion;
 import org.projectfloodlight.openflow.protocol.action.OFAction;
 import org.projectfloodlight.openflow.protocol.action.OFActionOutput;
+import org.projectfloodlight.openflow.protocol.action.OFActionSetQueue;
+import org.projectfloodlight.openflow.protocol.instruction.OFInstruction;
+import org.projectfloodlight.openflow.protocol.instruction.OFInstructionApplyActions;
+import org.projectfloodlight.openflow.protocol.instruction.OFInstructionMeter;
 import org.projectfloodlight.openflow.protocol.match.MatchField;
 import org.projectfloodlight.openflow.protocol.meterband.OFMeterBand;
 import org.projectfloodlight.openflow.protocol.meterband.OFMeterBandDrop;
@@ -202,6 +207,8 @@ public class TrafficPrioritizer implements IFloodlightModule, IOFMessageListener
         IOFSwitch sw = switchService.getSwitch(DatapathId.of(1)); /* The IOFSwitchService */
 		installMeter(sw, 10000, 100, 1);
 		
+		installFlow(sw,1);
+		
 		return true;	
 	}
 	
@@ -231,15 +238,66 @@ public class TrafficPrioritizer implements IFloodlightModule, IOFMessageListener
         bands.add(band);
         
         /* Create meter modification message */
-        OFMeterMod.Builder meterModBuilder = factory.buildMeterMod()
+        OFMeterMod meterMod = factory.buildMeterMod()
             .setMeterId(meterId)
             .setCommand(OFMeterModCommand.ADD)
             .setFlags(flags)
-            .setMeters(bands);
+            .setMeters(bands)
+            .build();
   
         /* Send meter modification message to switch */
-        sw.write(meterModBuilder.build());
+        sw.write(meterMod);
         
+        return 0;
+	}
+	
+	
+	private long installFlow(final IOFSwitch sw, final long meterId) {
+		List<OFInstruction> instructions = new ArrayList<OFInstruction>();
+		ArrayList<OFAction> actions = new ArrayList<OFAction>();
+		
+		/*
+		 * OpenFlow requires the switch evaluate the goto-meter instruction in a flow prior to any apply actions instruction. 
+		 * This ensures the meter can perform its prescribed task (e.g. drop packet or DSCP remark) prior to potentially sending 
+		 * the packet out. If a meter drops a packet, any further instructions in the flow will not be processed for that 
+		 * particular packet.
+		 */
+		log.info("installing go-to-meter flow instruction " + meterId + " on switch "+ sw.getId());
+		
+		/* Meters only supported in OpenFlow 1.3 and up --> need 1.3+ factory */
+		OFFactory factory = OFFactories.getFactory(OFVersion.OF_13);
+		OFInstructionMeter meter = factory.instructions().buildMeter()
+			.setMeterId(1)
+			.build();
+		
+		
+		// If the meter does not apply (i.e. the qos flow is not respected) the packets will be enqueued in min priority queue
+		OFActionSetQueue enqueue = factory.actions().buildSetQueue()
+			.setQueueId(1)
+			.build();
+		
+		OFInstructionApplyActions output = factory.instructions().buildApplyActions()
+				.setActions(Collections.singletonList((OFAction) enqueue))
+				.build();
+		 
+		/*
+		 * Regardless of the instruction order in the flow, the switch is required 
+		 * to process the meter instruction prior to any apply actions instruction.
+		 */
+		instructions.add(meter);
+		instructions.add(output);
+		//actions.add(enqueue);
+		 
+		/* Flow will send matched packets to meter ID 1 and then possibly output on port 2 */
+		OFFlowAdd flowAdd = factory.buildFlowAdd()
+		    /* set anything else you need, e.g. match */
+		    .setInstructions(instructions)
+		    //.setActions(actions)
+		    .build();
+		
+		 /* Send meter modification message to switch */
+        sw.write(flowAdd);
+     
         return 0;
 	}
 	
