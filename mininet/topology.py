@@ -13,12 +13,12 @@ from mininet.log import setLogLevel, info
 from mininet.link import TCLink
 from mininet.cli import CLI
 from mininet.link import Intf
-from mininet.node import RemoteController, Host
+from mininet.node import RemoteController, Host, OVSKernelSwitch
 
 
 def topology():
         
-	net = Mininet( ipBase="10.0.0.0/8", switch=UserSwitch )
+	net = Mininet( ipBase="10.0.0.0/8", switch=UserSwitch , autoSetMacs=True)
         info("*** Adding controller\n")
         c1 = net.addController(name="c1", controller=RemoteController,
                            protocol="tcp",
@@ -26,8 +26,8 @@ def topology():
                            port=6653)
 
         info("*** Adding switches\n")
-        s1 = net.addSwitch("s1", dpid='00:00:00:00:00:11', cls=UserSwitch, dpopts='')		
-        s2 = net.addSwitch("s2", dpid='00:00:00:00:00:12', cls=UserSwitch, dpopts='')
+        s1 = net.addSwitch("s1", dpid="00:00:00:00:00:06", dpopts='')		
+        s2 = net.addSwitch("s2", dpid="00:00:00:00:00:07", dpopts='')
    
 
         info("*** Adding hosts\n")
@@ -67,9 +67,9 @@ def topology():
 	s1.cmd('dpctl unix:/tmp/s1 queue-mod 5 1 0')
 	s1.cmd('dpctl unix:/tmp/s1 queue-mod 5 2 0')
 	s1.cmd('dpctl unix:/tmp/s1 queue-mod 5 7 0')
-	
 
         #net.plotGraph(max_x=100, max_y=100)
+
 
 	CLI( net )
 

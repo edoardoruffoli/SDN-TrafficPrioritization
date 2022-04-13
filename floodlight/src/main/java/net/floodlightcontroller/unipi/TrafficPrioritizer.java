@@ -43,6 +43,7 @@ import org.projectfloodlight.openflow.protocol.match.MatchField;
 import org.projectfloodlight.openflow.protocol.meterband.OFMeterBand;
 import org.projectfloodlight.openflow.protocol.meterband.OFMeterBandDrop;
 import org.projectfloodlight.openflow.protocol.meterband.OFMeterBandDscpRemark;
+import org.projectfloodlight.openflow.protocol.meterband.OFMeterBandDscpRemark.Builder;
 import org.projectfloodlight.openflow.protocol.meterband.OFMeterBandExperimenter;
 import org.projectfloodlight.openflow.protocol.queueprop.OFQueueProp;
 import org.projectfloodlight.openflow.protocol.queueprop.OFQueuePropMaxRate;
@@ -214,7 +215,7 @@ public class TrafficPrioritizer implements IFloodlightModule, IOFMessageListener
 		
 		log.info("Registering QoS Flow [source_addr: " + qosflow.getSourceAddress() + " dest: " + qosflow.getDestAddress());
 		
-        IOFSwitch sw = switchService.getSwitch(DatapathId.of(1)); /* The IOFSwitchService */
+        IOFSwitch sw = switchService.getSwitch(DatapathId.of(6)); /* The IOFSwitchService */
         
 		installMeter(sw, 1, qosflow.getBandwidth(), /*burst*/0);		
 		installFlow(sw,1, qosflow);
@@ -248,7 +249,7 @@ public class TrafficPrioritizer implements IFloodlightModule, IOFMessageListener
 		Set<OFMeterFlags> flags = new HashSet<>(Arrays.asList(OFMeterFlags.KBPS, OFMeterFlags.BURST));
         
         /* Create and set meter band */
-        OFMeterBandDrop.Builder bandBuilder = factory.meterBands().buildDrop()	// buildDscpRemark is not supported by OvS
+        Builder bandBuilder = factory.meterBands().buildDscpRemark()	// buildDscpRemark is not supported by OvS
                 .setRate(rate)
                // .setPrecLevel((short) 14)
                 .setBurstSize(burstSize);
