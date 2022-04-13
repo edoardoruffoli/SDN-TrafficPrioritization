@@ -26,8 +26,8 @@ def topology():
                            port=6653)
 
         info("*** Adding switches\n")
-        s1 = net.addSwitch("s1", dpid="00:00:00:00:00:06", dpopts='')		
-        s2 = net.addSwitch("s2", dpid="00:00:00:00:00:07", dpopts='')
+        s1 = net.addSwitch("s1", dpid="00:00:00:00:00:06")		
+        s2 = net.addSwitch("s2", dpid="00:00:00:00:00:07")
    
 
         info("*** Adding hosts\n")
@@ -70,6 +70,11 @@ def topology():
 
         #net.plotGraph(max_x=100, max_y=100)
 
+	# Bad TCP SYN packets generated on veth interfaces in Ubuntu 16.04
+	# https://github.com/mininet/mininet/issues/653
+	for h in h1, h2, h3, h4, h5:
+		#h.cmd( 'ethtool -K', h.defaultIntf(), 'tx', tx, 'rx', rx )
+		h.cmd( 'ethtool -K', h.defaultIntf(), 'tx off' )
 
 	CLI( net )
 
