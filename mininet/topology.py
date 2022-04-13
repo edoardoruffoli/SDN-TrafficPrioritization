@@ -8,17 +8,17 @@ import os
 import time
 from mininet.topo import Topo
 from mininet.net import Mininet
-from mininet.node import Node
+from mininet.node import Node, UserSwitch
 from mininet.log import setLogLevel, info
 from mininet.link import TCLink
 from mininet.cli import CLI
 from mininet.link import Intf
-from mininet.node import RemoteController, OVSKernelSwitch, Host
+from mininet.node import RemoteController, Host
 
 
 def topology():
         
-	net = Mininet( ipBase="10.0.0.0/8" )
+	net = Mininet( ipBase="10.0.0.0/8", switch=UserSwitch )
         info("*** Adding controller\n")
         c1 = net.addController(name="c1", controller=RemoteController,
                            protocol="tcp",
@@ -26,8 +26,8 @@ def topology():
                            port=6653)
 
         info("*** Adding switches\n")
-        s1 = net.addSwitch("s1", cls=OVSKernelSwitch, dpid="00:00:00:00:00:00:00:01", protocols="OpenFlow13", datapath="user")		# user mode needed for meters support
-        s2 = net.addSwitch("s2", cls=OVSKernelSwitch, dpid="00:00:00:00:00:00:00:02", protocols="OpenFlow13", datapath="user")
+        s1 = net.addSwitch("s1", dpid='00:00:00:00:00:11', cls=UserSwitch, dpopts='')		
+        s2 = net.addSwitch("s2", dpid='00:00:00:00:00:12', cls=UserSwitch, dpopts='')
    
 
         info("*** Adding hosts\n")
@@ -44,7 +44,7 @@ def topology():
         net.addLink(h3, s1)
         net.addLink(h4, s1)
 
-        net.addLink(s1, s2, cls=TCLink, bw=1000)
+        net.addLink(s1, s2, cls=TCLink, bw=10)
 
         net.addLink(s2, h5)
 
@@ -57,12 +57,17 @@ def topology():
         # queues	
 	time.sleep(1)	# wait for the switch to start
 	
-	s1.cmd('ovs-vsctl --all destroy Qos')
-	s1.cmd('ovs-vsctl --all destroy Queue')
-	s1.cmd('ovs-vsctl set port s1-eth4 qos=@newqos -- --id=@newqos create qos type=linux-htb queues:0=@q0, queues:1=@q1, queues:2=@q2 -- --id=@q0, create queue other-config:priority=7 -- --id=@q1, create queue dscp=10 other-config:priority=1 -- --id=@q2 create queue dscp=46 other-config:priority=2')
+	s1.cmd('dpctl unix:/tmp/s1 queue-del 5 1')	# QoS
+	s1.cmd('dpctl unix:/tmp/s1 queue-del 5 2')	# Best Effort
+	s1.cmd('dpctl unix:/tmp/s1 queue-del 5 7')	# Less Effort
 
-	# allow meters
-	# sh ovs-vsctl set s1 bridge datapath_type=netdev
+	s1.cmd('dpctl unix:/tmp/s1 flow-mod cmd=add,table=0,prio=3 in_port=1 apply:queue=1,output=5')
+	s1.cmd('dpctl unix:/tmp/s1 flow-mod cmd=add,table=0,prio=3 in_port=2 apply:queue=2,output=5')
+		
+	s1.cmd('dpctl unix:/tmp/s1 queue-mod 5 1 0')
+	s1.cmd('dpctl unix:/tmp/s1 queue-mod 5 2 0')
+	s1.cmd('dpctl unix:/tmp/s1 queue-mod 5 7 0')
+	
 
         #net.plotGraph(max_x=100, max_y=100)
 
