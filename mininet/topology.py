@@ -26,8 +26,8 @@ def topology():
                            port=6653)
 
         info("*** Adding switches\n")
-        s1 = net.addSwitch("s1", dpid="00:00:00:00:00:06")		
-        s2 = net.addSwitch("s2", dpid="00:00:00:00:00:07")
+        s1 = net.addSwitch("s1", dpid="00:00:00:00:00:06", dpopts='')		
+        s2 = net.addSwitch("s2", dpid="00:00:00:00:00:07", dpopts='')
    
 
         info("*** Adding hosts\n")
@@ -44,7 +44,7 @@ def topology():
         net.addLink(h3, s1)
         net.addLink(h4, s1)
 
-        net.addLink(s1, s2, cls=TCLink, bw=10)
+        net.addLink(s1, s2, cls=TCLink, bw=100)
 
         net.addLink(s2, h5)
 
@@ -55,20 +55,25 @@ def topology():
         s2.start([c1])
 
         # queues	
+        info("*** Creating queues\n")
 	time.sleep(1)	# wait for the switch to start
 	
-	s1.cmd('dpctl unix:/tmp/s1 queue-del 5 1')	# QoS
+	s1.cmd('dpctl unix:/tmp/s1 queue-del 5 1')	# Less Effort
 	s1.cmd('dpctl unix:/tmp/s1 queue-del 5 2')	# Best Effort
-	s1.cmd('dpctl unix:/tmp/s1 queue-del 5 7')	# Less Effort
-
-	s1.cmd('dpctl unix:/tmp/s1 flow-mod cmd=add,table=0,prio=3 in_port=1 apply:queue=1,output=5')
-	s1.cmd('dpctl unix:/tmp/s1 flow-mod cmd=add,table=0,prio=3 in_port=2 apply:queue=2,output=5')
+	s1.cmd('dpctl unix:/tmp/s1 queue-del 5 7')	# QoS
 		
-	s1.cmd('dpctl unix:/tmp/s1 queue-mod 5 1 0')
-	s1.cmd('dpctl unix:/tmp/s1 queue-mod 5 2 0')
-	s1.cmd('dpctl unix:/tmp/s1 queue-mod 5 7 0')
+	s1.cmd('dpctl unix:/tmp/s1 queue-mod 5 1 0')	# Less Effort
+	s1.cmd('dpctl unix:/tmp/s1 queue-mod 5 2 200')	# Best Effort
+	s1.cmd('dpctl unix:/tmp/s1 queue-mod 5 7 800')	# QoS
+
+	# Setting Best Effort Queue as default queue for reaching h5
+	s1.cmd('dpctl unix:/tmp/s1 flow-mod cmd=add,prio=1,table=0 eth_type=0x800,ip_dst=10.0.0.5 apply:queue=2,output=5')
+
+	# Less Effort queue
+	#s1.cmd('dpctl unix:/tmp/s1 flow-mod cmd=add,table=1,prio=1 ip_dscp=10 apply:queue=1,output=5')
 
         #net.plotGraph(max_x=100, max_y=100)
+
 
 	# Bad TCP SYN packets generated on veth interfaces in Ubuntu 16.04
 	# https://github.com/mininet/mininet/issues/653
