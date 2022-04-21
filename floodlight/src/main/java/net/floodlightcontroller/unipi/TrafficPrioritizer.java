@@ -37,6 +37,7 @@ import org.projectfloodlight.openflow.protocol.action.OFActionOutput;
 import org.projectfloodlight.openflow.protocol.action.OFActionSetQueue;
 import org.projectfloodlight.openflow.protocol.instruction.OFInstruction;
 import org.projectfloodlight.openflow.protocol.instruction.OFInstructionApplyActions;
+import org.projectfloodlight.openflow.protocol.instruction.OFInstructionGotoTable;
 import org.projectfloodlight.openflow.protocol.instruction.OFInstructionMeter;
 import org.projectfloodlight.openflow.protocol.match.Match;
 import org.projectfloodlight.openflow.protocol.match.MatchField;
@@ -52,10 +53,12 @@ import org.projectfloodlight.openflow.protocol.ver13.OFQueuePropertiesSerializer
 import org.projectfloodlight.openflow.types.DatapathId;
 import org.projectfloodlight.openflow.types.EthType;
 import org.projectfloodlight.openflow.types.IPv4Address;
+import org.projectfloodlight.openflow.types.IpDscp;
 import org.projectfloodlight.openflow.types.IpProtocol;
 import org.projectfloodlight.openflow.types.MacAddress;
 import org.projectfloodlight.openflow.types.OFBufferId;
 import org.projectfloodlight.openflow.types.OFPort;
+import org.projectfloodlight.openflow.types.TableId;
 import org.projectfloodlight.openflow.types.U64;
 import org.projectfloodlight.openflow.util.HexString;
 import org.slf4j.Logger;
@@ -216,9 +219,14 @@ public class TrafficPrioritizer implements IFloodlightModule, IOFMessageListener
 		log.info("Registering QoS Flow [source_addr: " + qosflow.getSourceAddress() + " dest: " + qosflow.getDestAddress());
 		
         IOFSwitch sw = switchService.getSwitch(DatapathId.of(6)); /* The IOFSwitchService */
+        int meterId = 1;
         
-		installMeter(sw, 1, qosflow.getBandwidth(), /*burst*/0);		
-		installFlow(sw,1, qosflow);
+		//installMeter(sw, meterId, qosflow.getBandwidth(), /*burst*/0);		
+		//installGoToMeterFlow(sw, meterId, qosflow);
+		
+		// OvS
+        sw = switchService.getSwitch(DatapathId.of(7)); /* The IOFSwitchService */
+		installQoSFlow(sw, qosflow);
 		
 		return true;	
 	}
@@ -234,9 +242,9 @@ public class TrafficPrioritizer implements IFloodlightModule, IOFMessageListener
 	/**
 	 * Create and install a meter in a switch.
 	 * @param sw 			the switch in which install the meter.
-	 * @param meterId
-	 * @param rate
-	 * @param burstSize
+	 * @param meterId		the id of the meter
+	 * @param rate			the maximum bandwidth rate
+	 * @param burstSize		burst
 	 */
 	
 	private void installMeter(final IOFSwitch sw, final long meterId, final long rate, 
@@ -249,9 +257,9 @@ public class TrafficPrioritizer implements IFloodlightModule, IOFMessageListener
 		Set<OFMeterFlags> flags = new HashSet<>(Arrays.asList(OFMeterFlags.KBPS, OFMeterFlags.BURST));
         
         /* Create and set meter band */
-        Builder bandBuilder = factory.meterBands().buildDscpRemark()	// buildDscpRemark is not supported by OvS
+        Builder bandBuilder = factory.meterBands().buildDscpRemark()
                 .setRate(rate)
-               // .setPrecLevel((short) 14)
+                .setPrecLevel((short) 48)
                 .setBurstSize(burstSize);
         
         /* Create meter modification message */
@@ -260,14 +268,22 @@ public class TrafficPrioritizer implements IFloodlightModule, IOFMessageListener
             .setCommand(OFMeterModCommand.ADD)
             .setFlags(flags)
             .setMeters(Collections.singletonList((OFMeterBand) bandBuilder.build()));
-  
+        	
         /* Send meter modification message to switch */
         sw.write(meterModBuilder.build());
         
         return;
 	}
 	
-	private long installFlow(final IOFSwitch sw, final long meterId, QoSFlow qosflow) {
+	/**
+	 * 
+	 * @param sw
+	 * @param meterId
+	 * @param qosflow
+	 * @return
+	 */
+	private void installGoToMeterFlow(final IOFSwitch sw, final long meterId, QoSFlow qosflow) {
+		log.info("installing go-to-meter flow instruction " + meterId + " on switch "+ sw.getId());
 		
 		List<OFInstruction> instructions = new ArrayList<OFInstruction>();
 		ArrayList<OFAction> actions = new ArrayList<OFAction>();
@@ -278,22 +294,33 @@ public class TrafficPrioritizer implements IFloodlightModule, IOFMessageListener
 		 * the packet out. If a meter drops a packet, any further instructions in the flow will not be processed for that 
 		 * particular packet.
 		 */
-		log.info("installing go-to-meter flow instruction " + meterId + " on switch "+ sw.getId());
 		
 		/* Meters only supported in OpenFlow 1.3 and up --> need 1.3+ factory */
 		OFFactory factory = sw.getOFFactory();
+		
+		/*
+		OFInstructionGotoTable goToTable = factory.instructions().buildGotoTable()
+				.setTableId(TableId.of(1))
+				.build();*/
+		
 		OFInstructionMeter meter = factory.instructions().buildMeter()
-			.setMeterId(1)
+			.setMeterId(meterId)
 			.build();
 		
 		
-		// If the meter does not apply (i.e. the qos flow is not respected) the packets will be enqueued in min priority queue
+		// If the meter does not apply (i.e. the qos flow is respected) the packets will be enqueued in QoS priority queue
+		
 		OFActionSetQueue enqueue = factory.actions().buildSetQueue()
-			.setQueueId(1)
+			.setQueueId(7)	// QoS queue
 			.build();
+
+		OFActionOutput port = factory.actions().buildOutput().setPort(OFPort.of(5)).build();
 		
+		actions.add(enqueue);
+		actions.add(port);
+
 		OFInstructionApplyActions output = factory.instructions().buildApplyActions()
-				.setActions(Collections.singletonList((OFAction) enqueue))
+				.setActions(actions)
 				.build();
 		 
 		/*
@@ -311,31 +338,73 @@ public class TrafficPrioritizer implements IFloodlightModule, IOFMessageListener
 			 
 		/* Flow will send matched packets to meter ID 1 and then possibly output on port 2 */
 		OFFlowAdd flowAdd = factory.buildFlowAdd()
-		    /* set anything else you need, e.g. match */
 		    .setInstructions(instructions)
+		    .setTableId(TableId.of(0))
+		    .setPriority(32768)
 		    //.setActions(actions)
 		    .setMatch(matchBuilder.build())
 		    .build();
 		
 		 /* Send meter modification message to switch */
         sw.write(flowAdd);
-     
-        return 0;
+	}
+	
+	/**
+	 * 
+	 * @param sw
+	 * @param meterId
+	 * @param qosflow
+	 * @return
+	 */
+	private void installQoSFlow(final IOFSwitch sw, QoSFlow qosflow) {
+		log.info("installing QoS flow instruction on switch "+ sw.getId());
+		
+		ArrayList<OFAction> actions = new ArrayList<OFAction>();
+		OFFactory factory = sw.getOFFactory();
+
+		OFActionSetQueue setQueue = factory.actions().buildSetQueue()
+		        .setQueueId(1)
+		        .build();
+		actions.add(setQueue);
+		
+		OFActionOutput output = factory.actions().buildOutput()
+				.setPort(OFPort.of(2))
+				.build();
+		actions.add(output);
+		
+		Match.Builder matchBuilder = sw.getOFFactory().buildMatch();
+		matchBuilder.setExact(MatchField.ETH_TYPE, EthType.IPv4)
+	        .setExact(MatchField.IPV4_SRC, qosflow.getSourceAddress())
+	        .setExact(MatchField.IPV4_DST, qosflow.getDestAddress());
+	       // .setExact(MatchField.IP_DSCP, IpDscp.DSCP_48);
+			 
+		
+		OFFlowAdd flowAdd = factory.buildFlowAdd()
+			.setMatch(matchBuilder.build())
+		    .setActions(actions)
+		    .setPriority(1)
+		    .build();
+		
+		 /* Send meter modification message to switch */
+        sw.write(flowAdd);
 	}
 	
 	@Override
-	public Map<String, BigInteger> getNumPacketsHandled() {
+	public Map<String, BigInteger> getNumPacketsHandled() {		
+
 		// Use OFMeterBandStats (?)
 		log.info("Queue statistics requested");
 		Map<String, BigInteger> queueStats = new HashMap();
 		
-		OFFactory factory = OFFactories.getFactory(OFVersion.OF_13);
+		IOFSwitch sw = switchService.getSwitch(DatapathId.of(7));
+		OFFactory factory = sw.getOFFactory();
 		OFQueueStatsRequest sr = factory.buildQueueStatsRequest().build();
-		ListenableFuture<List<OFQueueStatsReply>> future = switchService.getSwitch(DatapathId.of(1)).writeStatsRequest(sr);
+		ListenableFuture<List<OFQueueStatsReply>> future = switchService.getSwitch(DatapathId.of(7)).writeStatsRequest(sr);
 		
 		try {
-			/* Wait up to 10s for a reply; return when received; else exception thrown */
+			// Wait up to 10s for a reply; return when received; else exception thrown
 		    List<OFQueueStatsReply> replies = future.get(10, TimeUnit.SECONDS);
+		    System.out.println(replies);
 		    for (OFQueueStatsReply reply : replies) {
 		        for (OFQueueStatsEntry e : reply.getEntries()) {
 		            long id = e.getQueueId();
@@ -350,5 +419,6 @@ public class TrafficPrioritizer implements IFloodlightModule, IOFMessageListener
 		// Should return Best Effort and QoS statistics
 		
 		return queueStats;
+
 	}
 }
