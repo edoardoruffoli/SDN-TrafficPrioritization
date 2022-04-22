@@ -49,7 +49,7 @@ def topology():
         net.addLink(h4, s1)
 
 	net.addLink(s1, s2)
-        net.addLink(s2, s3) #, cls=TCLink, bw=10) https://github.com/faucetsdn/ryu/issues/147
+        net.addLink(s2, s3) #, cls=TCLink, bw=10) #https://github.com/faucetsdn/ryu/issues/147
         net.addLink(s3, h5)
 
         info("*** Starting network\n")
@@ -59,37 +59,27 @@ def topology():
         s2.start([c1])
 	s3.start([c1])
 
-        # queues	
+        # Queues	
         info("*** Creating queues\n")
-	time.sleep(1)	# wait for the switches to start
+	time.sleep(1)			# wait for the switches to start
 	
 	# Access Switch (BOFUSS)
 	"""
-	s1.cmd('dpctl unix:/tmp/s1 queue-del 5 1')	# Less Effort
-	s1.cmd('dpctl unix:/tmp/s1 queue-del 5 2')	# Best Effort
-	s1.cmd('dpctl unix:/tmp/s1 queue-del 5 7')	# QoS
-		
-	s1.cmd('dpctl unix:/tmp/s1 queue-mod 5 1 0')	# Less Effort
-	s1.cmd('dpctl unix:/tmp/s1 queue-mod 5 2 5')	# Best Effort
-	s1.cmd('dpctl unix:/tmp/s1 queue-mod 5 7 800')	# QoS
-
-	# Setting Best Effort Queue as default queue for reaching h5
 	s1.cmd('dpctl unix:/tmp/s1 flow-mod cmd=add,prio=1,table=0 eth_type=0x800,ip_dst=10.0.0.5 apply:queue=2,output=5')
 	"""
-	# Less Effort queue
-	#s1.cmd('dpctl unix:/tmp/s1 flow-mod cmd=add,table=1,prio=1 ip_dscp=10 apply:queue=1,output=5')
 
 	# Core Switch (OvS)
 	s2.cmd('ovs-vsctl --all destroy Qos')
 	s2.cmd('ovs-vsctl --all destroy Queue')
-	# q0 QoS
-	# q1 Best Effort
-	# q2 Less Effort
 
-	s2.cmd('ovs-vsctl set port s2-eth2 qos=@newqos -- --id=@newqos create qos type=linux-htb queues:0=@q0, queues:1=@q1, queues:2=@q2 -- --id=@q0, create queue other-config:priority=7 -- --id=@q1, create queue other-config:priority=1 -- --id=@q2 create queue other-config:priority=2')
+	# Queue 2 QoS DSCP = 46
+	# Queue 1 MidPriority DSCP = 10
+	# Queue 0 LowestPriority DSCP = 0
+	s2.cmd('ovs-vsctl set port s2-eth2 qos=@newqos -- --id=@newqos create qos type=linux-htb queues:0=@q0, queues:1=@q1, queues:2=@q2 -- --id=@q0, create queue other-config:priority=0 -- --id=@q1, create queue other-config:priority=1 -- --id=@q2 create queue other-config:priority=2')
 
         #net.plotGraph(max_x=100, max_y=100)
 
+	# Iperf BUG
 	# Bad TCP SYN packets generated on veth interfaces in Ubuntu 16.04
 	# https://github.com/mininet/mininet/issues/653
 	for h in h1, h2, h3, h4, h5:
