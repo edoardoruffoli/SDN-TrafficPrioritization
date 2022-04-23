@@ -62,19 +62,10 @@ def topology():
         # Queues	
         info("*** Creating queues\n")
 	time.sleep(1)			# wait for the switches to start
-	
-	# Access Switch (BOFUSS)
-	"""
-	s1.cmd('dpctl unix:/tmp/s1 flow-mod cmd=add,prio=1,table=0 eth_type=0x800,ip_dst=10.0.0.5 apply:queue=2,output=5')
-	"""
 
-	# Core Switch (OvS)
 	s2.cmd('ovs-vsctl --all destroy Qos')
 	s2.cmd('ovs-vsctl --all destroy Queue')
 
-	# Queue 2 QoS DSCP = 46
-	# Queue 1 MidPriority DSCP = 10
-	# Queue 0 LowestPriority DSCP = 0
 	s2.cmd('ovs-vsctl set port s2-eth2 qos=@newqos -- --id=@newqos create qos type=linux-htb queues:0=@q0, queues:1=@q1, queues:2=@q2 -- --id=@q0, create queue other-config:priority=0 -- --id=@q1, create queue other-config:priority=1 -- --id=@q2 create queue other-config:priority=2')
 
         #net.plotGraph(max_x=100, max_y=100)

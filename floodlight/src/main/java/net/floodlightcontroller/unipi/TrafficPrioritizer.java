@@ -452,7 +452,7 @@ public class TrafficPrioritizer implements IFloodlightModule, IOFMessageListener
 	@Override
 	public Map<String, BigInteger> getNumPacketsHandled() {		
 		/*
-		 * OFQueueStats has a bug with TCLink of mininet issue, so we used FLow stats , PROBLEM
+		 * OFQueueStats has a bug with TCLink of mininet issue
 		 */
 		log.info("Class statistics requested");
 		
@@ -462,6 +462,31 @@ public class TrafficPrioritizer implements IFloodlightModule, IOFMessageListener
 		Map<String, BigInteger> classStats = new HashMap();
 		
 		Match match = sw.getOFFactory().buildMatch().build();
+		OFQueueStatsRequest sr = factory.buildQueueStatsRequest()
+				.setQueueId(-1)
+				.build();
+		ListenableFuture<List<OFQueueStatsReply>> future = sw.writeStatsRequest(sr);
+		
+		try {
+			// Wait up to 10s for a reply; return when received; else exception thrown
+		    List<OFQueueStatsReply> replies = future.get(10, TimeUnit.SECONDS);
+		    
+		    for (OFQueueStatsReply reply : replies) {
+		        for (OFQueueStatsEntry e : reply.getEntries()) {		 
+		        	if (e.getQueueId() == 0)
+		        		classStats.merge("Best Effort Traffic", e.getTxPackets().getBigInteger(), (a, b) -> a.add(b));
+		        	else if (e.getQueueId() == 2)
+		        		classStats.merge("Conformant QoS Traffic", e.getTxPackets().getBigInteger(), (a, b) -> a.add(b));
+		        	else if(e.getQueueId() == 1)
+			        	classStats.merge("Non-conformant QoS Traffic", e.getTxPackets().getBigInteger(), (a, b) -> a.add(b));
+		        }
+		    }
+		} catch (InterruptedException | ExecutionException | java.util.concurrent.TimeoutException e) {
+		    e.printStackTrace();
+		}
+		
+		
+		/*
 		OFFlowStatsRequest sr = factory.buildFlowStatsRequest()
                 .setMatch(match)
                 .setOutPort(OFPort.ANY)
@@ -489,6 +514,7 @@ public class TrafficPrioritizer implements IFloodlightModule, IOFMessageListener
 		} catch (InterruptedException | ExecutionException | java.util.concurrent.TimeoutException e) {
 		    e.printStackTrace();
 		}
+		*/
 		
 		return classStats;
 	}
