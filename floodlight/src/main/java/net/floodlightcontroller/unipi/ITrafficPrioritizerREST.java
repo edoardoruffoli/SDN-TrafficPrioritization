@@ -12,16 +12,16 @@ import net.floodlightcontroller.core.module.IFloodlightService;
 
 public interface ITrafficPrioritizerREST extends IFloodlightService {
 	
+	public boolean enableTrafficPrioritization(String sw);
+	
+	public boolean disableTrafficPrioritization(String sw);
+	
 	public List<QoSFlow> getFlows();
 	
 	/* <IPSource, IPDestination, IPDSCPbits, (?) bandwidth> */
 	public boolean registerFlow(QoSFlow qosflow);
 	
 	public boolean deregisterFlow(QoSFlow qosflow);
-	
-//	public String enablePrioritization();
-	
-//	public String disablePrioritization();
 	
 	public Map<String, BigInteger> getNumPacketsHandled();
 	
