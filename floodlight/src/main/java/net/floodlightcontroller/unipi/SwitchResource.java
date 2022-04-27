@@ -19,5 +19,4 @@ public class SwitchResource extends ServerResource {
 				.get(ITrafficPrioritizerREST.class.getCanonicalName());
     	return  tp.getNumPacketsHandled();
     }
-	
 }

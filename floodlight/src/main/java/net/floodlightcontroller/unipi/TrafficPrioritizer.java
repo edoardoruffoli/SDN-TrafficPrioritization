@@ -87,6 +87,8 @@ import net.floodlightcontroller.core.module.IFloodlightModule;
 import net.floodlightcontroller.core.module.IFloodlightService;
 import net.floodlightcontroller.linkdiscovery.ILinkDiscoveryService;
 import net.floodlightcontroller.linkdiscovery.Link;
+import net.floodlightcontroller.linkdiscovery.ILinkDiscovery.LinkDirection;
+import net.floodlightcontroller.linkdiscovery.ILinkDiscovery.LinkType;
 import net.floodlightcontroller.linkdiscovery.internal.LinkInfo;
 import net.floodlightcontroller.linkdiscovery.web.LinkWithType;
 import net.floodlightcontroller.packet.ARP;
@@ -240,23 +242,59 @@ public class TrafficPrioritizer implements IFloodlightModule, IOFMessageListener
 	
 	@Override
 	public HashMap<DatapathId,SwitchQosDesc> getSwitchTopology() {
-		//System.out.println(linkService.getSwitchLinks().toString());
-		HashMap<DatapathId,SwitchQosDesc> topoInfo = new HashMap<DatapathId,SwitchQosDesc>();
-		
-		Map<DatapathId,Set<Link>> tmp;
-		tmp = linkService.getSwitchLinks();
-		System.out.println(tmp);
+		HashMap<DatapathId,SwitchQosDesc> topoInfo = new HashMap<DatapathId,SwitchQosDesc>();	
+		Map<DatapathId,Set<Link>> tmp = linkService.getSwitchLinks();
 		
 		for (DatapathId dpid: tmp.keySet()) {
 			Boolean qos_enabled = true; //andare a implemnetare la funz che verifica se qos=1
 			String type_sw = switchService.getSwitch(dpid).getSwitchDescription().getHardwareDescription();
-			SwitchQosDesc sw_desc = new SwitchQosDesc(qos_enabled,tmp.get(dpid) ,type_sw);
+			
+			// Transform Link to LinkWithType that implements serialization
+			Set<LinkWithType> linksWithType = linkToLinkWithInfo(tmp.get(dpid));
+			
+			SwitchQosDesc sw_desc = new SwitchQosDesc(qos_enabled, linksWithType ,type_sw);
 			topoInfo.put(dpid, sw_desc);
 		}
-		return topoInfo;
 		
+		return topoInfo;
 	}
-	
+
+	private Set<LinkWithType> linkToLinkWithInfo(Set<Link> links) {
+        Set<LinkWithType> returnLinkSet = new HashSet<LinkWithType>();
+        
+		for (Link link: links) {
+			LinkInfo info = linkService.getLinkInfo(link);
+            LinkType type = linkService.getLinkType(link, info);
+            if (type == LinkType.DIRECT_LINK || type == LinkType.TUNNEL) {
+                 LinkWithType lwt;
+
+                 DatapathId src = link.getSrc();
+                 DatapathId dst = link.getDst();
+                 OFPort srcPort = link.getSrcPort();
+                 OFPort dstPort = link.getDstPort();
+                 Link otherLink = new Link(dst, dstPort, src, srcPort, U64.ZERO /* not important in lookup */);
+                 LinkInfo otherInfo = linkService.getLinkInfo(otherLink);
+                 LinkType otherType = null;
+                 if (otherInfo != null)
+                     otherType = linkService.getLinkType(otherLink, otherInfo);
+                 if (otherType == LinkType.DIRECT_LINK || otherType == LinkType.TUNNEL) {
+	                  // This is a bi-direcitonal link.
+	                  // It is sufficient to add only one side of it.
+	                  if ((src.getLong() < dst.getLong()) || (src.getLong() == dst.getLong()
+	                      		&& srcPort.getPortNumber() < dstPort.getPortNumber())) {
+	                      lwt = new LinkWithType(link, type, LinkDirection.BIDIRECTIONAL);
+	                       returnLinkSet.add(lwt);
+	                   }
+                 } else {
+                        // This is a unidirectional link.
+                       lwt = new LinkWithType(link, type, LinkDirection.UNIDIRECTIONAL);
+                        returnLinkSet.add(lwt);
+                 }
+            }
+        }
+		
+		return returnLinkSet;
+	}
 	
 	@Override
 	public boolean registerFlow(QoSFlow qosflow) {
