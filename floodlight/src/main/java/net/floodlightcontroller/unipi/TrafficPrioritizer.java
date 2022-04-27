@@ -29,6 +29,7 @@ import org.projectfloodlight.openflow.protocol.OFMeterModCommand;
 import org.projectfloodlight.openflow.protocol.OFPacketIn;
 import org.projectfloodlight.openflow.protocol.OFPacketOut;
 import org.projectfloodlight.openflow.protocol.OFPacketQueue;
+import org.projectfloodlight.openflow.protocol.OFPortDesc;
 import org.projectfloodlight.openflow.protocol.OFQueueGetConfigReply;
 import org.projectfloodlight.openflow.protocol.OFQueueGetConfigRequest;
 import org.projectfloodlight.openflow.protocol.OFQueueStatsEntry;
@@ -84,6 +85,10 @@ import net.floodlightcontroller.core.module.FloodlightModuleContext;
 import net.floodlightcontroller.core.module.FloodlightModuleException;
 import net.floodlightcontroller.core.module.IFloodlightModule;
 import net.floodlightcontroller.core.module.IFloodlightService;
+import net.floodlightcontroller.linkdiscovery.ILinkDiscoveryService;
+import net.floodlightcontroller.linkdiscovery.Link;
+import net.floodlightcontroller.linkdiscovery.internal.LinkInfo;
+import net.floodlightcontroller.linkdiscovery.web.LinkWithType;
 import net.floodlightcontroller.packet.ARP;
 import net.floodlightcontroller.packet.Ethernet;
 import net.floodlightcontroller.packet.ICMP;
@@ -98,6 +103,8 @@ public class TrafficPrioritizer implements IFloodlightModule, IOFMessageListener
 	protected IFloodlightProviderService floodlightProvider; // Reference to the provider
 	protected IRestApiService restApiService; // Reference to the Rest API service
 	protected IOFSwitchService switchService;
+	protected ILinkDiscoveryService linkService;
+	
 	
 	// Logger
 	protected static Logger log;
@@ -154,6 +161,7 @@ public class TrafficPrioritizer implements IFloodlightModule, IOFMessageListener
 		l.add(IFloodlightProviderService.class);
 	    l.add(IRestApiService.class);
 	    l.add(IOFSwitchService.class);
+	    l.add(ILinkDiscoveryService.class);
 		return l;
 	}
 
@@ -163,6 +171,7 @@ public class TrafficPrioritizer implements IFloodlightModule, IOFMessageListener
 		floodlightProvider = context.getServiceImpl(IFloodlightProviderService.class);
 		restApiService = context.getServiceImpl(IRestApiService.class);
 		switchService = context.getServiceImpl(IOFSwitchService.class);
+		linkService = context.getServiceImpl(ILinkDiscoveryService.class);
 		
 		log = LoggerFactory.getLogger(TrafficPrioritizer.class);
 	}
@@ -223,8 +232,30 @@ public class TrafficPrioritizer implements IFloodlightModule, IOFMessageListener
         }
 
         log.info("The list of flows has been provided.");
+        IOFSwitch sw = switchService.getSwitch(DatapathId.of(7)); /* The IOFSwitchService */
+        System.out.println(sw.getSwitchDescription().getManufacturerDescription());
+        System.out.println(sw.getSwitchDescription().getSoftwareDescription());
     	return info;
 	} 
+	
+	@Override
+	public HashMap<DatapathId,SwitchQosDesc> getSwitchTopology() {
+		//System.out.println(linkService.getSwitchLinks().toString());
+		HashMap<DatapathId,SwitchQosDesc> topoInfo = new HashMap<DatapathId,SwitchQosDesc>();
+		
+		Map<DatapathId,Set<Link>> tmp;
+		tmp = linkService.getSwitchLinks();
+		System.out.println(tmp);
+		
+		for (DatapathId dpid: tmp.keySet()) {
+			Boolean qos_enabled = true; //andare a implemnetare la funz che verifica se qos=1
+			String type_sw = switchService.getSwitch(dpid).getSwitchDescription().getHardwareDescription();
+			SwitchQosDesc sw_desc = new SwitchQosDesc(qos_enabled,tmp.get(dpid) ,type_sw);
+			topoInfo.put(dpid, sw_desc);
+		}
+		return topoInfo;
+		
+	}
 	
 	
 	@Override
@@ -249,6 +280,8 @@ public class TrafficPrioritizer implements IFloodlightModule, IOFMessageListener
          */
 		// OvS (Queue Enabled Switch)
         sw = switchService.getSwitch(DatapathId.of(7)); /* The IOFSwitchService */
+        System.out.println(sw.getSwitchDescription().getManufacturerDescription());
+        System.out.println(sw.getSwitchDescription().getSoftwareDescription());
         
         /* Flow that are not conforming to the registered QoS traffic bandwidth are enqueued in the lowest priority queue */ 
 		installEnqueueBasedOnDscpFlow(sw, qosflow, 1, IpDscp.DSCP_4);

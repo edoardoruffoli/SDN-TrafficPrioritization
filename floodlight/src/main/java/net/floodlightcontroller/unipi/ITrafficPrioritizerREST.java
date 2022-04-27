@@ -1,10 +1,15 @@
 package net.floodlightcontroller.unipi;
 
 import java.math.BigInteger;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+
+import org.projectfloodlight.openflow.types.DatapathId;
 
 import net.floodlightcontroller.core.module.IFloodlightService;
+import net.floodlightcontroller.linkdiscovery.Link;
 
 //Service interface for the module
 //This interface will be use to interact with other modules
@@ -17,6 +22,8 @@ public interface ITrafficPrioritizerREST extends IFloodlightService {
 	public boolean disableTrafficPrioritization(String sw);
 	
 	public List<QoSFlow> getFlows();
+	
+	public HashMap<DatapathId,SwitchQosDesc> getSwitchTopology();
 	
 	/* <IPSource, IPDestination, IPDSCPbits, (?) bandwidth> */
 	public boolean registerFlow(QoSFlow qosflow);

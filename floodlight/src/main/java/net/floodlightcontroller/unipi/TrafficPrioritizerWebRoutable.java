@@ -7,6 +7,7 @@ import org.restlet.routing.Router;
 import net.floodlightcontroller.core.web.ControllerSummaryResource;
 import net.floodlightcontroller.core.web.ControllerSwitchesResource;
 import net.floodlightcontroller.core.web.LoadedModuleLoaderResource;
+import net.floodlightcontroller.linkdiscovery.web.LinksResource;
 import net.floodlightcontroller.restserver.RestletRoutable;
 
 public class TrafficPrioritizerWebRoutable implements RestletRoutable {
@@ -34,7 +35,10 @@ public class TrafficPrioritizerWebRoutable implements RestletRoutable {
 		// This resource will show the list of switches connected to the controller
 		router.attach("/switches/json", ControllerSwitchesResource.class);
 		
+		// This resource will show the stats of traffic
 		router.attach("/switches/stats/json", SwitchResource.class);
+		
+		router.attach("/switches/topology", TopologySwitchResource.class);
 		return router;
 	}
 
