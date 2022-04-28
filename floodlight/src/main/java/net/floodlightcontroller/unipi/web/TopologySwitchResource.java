@@ -1,4 +1,4 @@
-package net.floodlightcontroller.unipi;
+package net.floodlightcontroller.unipi.web;
 
 import java.math.BigInteger;
 import java.util.HashMap;
@@ -12,6 +12,7 @@ import org.restlet.resource.ServerResource;
 import net.floodlightcontroller.core.IOFSwitch;
 import net.floodlightcontroller.linkdiscovery.ILinkDiscoveryService;
 import net.floodlightcontroller.linkdiscovery.Link;
+import net.floodlightcontroller.unipi.SwitchQosDesc;
 
 public class TopologySwitchResource  extends ServerResource{
 	@Get("json")

@@ -1,4 +1,4 @@
-package net.floodlightcontroller.unipi;
+package net.floodlightcontroller.unipi.web;
 
 import java.math.BigInteger;
 import java.util.HashMap;
@@ -11,6 +11,8 @@ import org.projectfloodlight.openflow.types.DatapathId;
 import javafx.util.Pair;
 import net.floodlightcontroller.core.module.IFloodlightService;
 import net.floodlightcontroller.linkdiscovery.Link;
+import net.floodlightcontroller.unipi.QosTrafficFlow;
+import net.floodlightcontroller.unipi.SwitchQosDesc;
 
 //Service interface for the module
 //This interface will be use to interact with other modules
@@ -26,12 +28,12 @@ public interface ITrafficPrioritizerREST extends IFloodlightService {
 	
 	public Integer disableTrafficPrioritization(DatapathId dpidMeterSwitch, DatapathId dpidQueueSwitch);
 	
-	public List<QosFlow> getFlows();
+	public List<QosTrafficFlow> getQosTrafficFlows();
 	
-	public boolean registerFlow(DatapathId dpidMeterSwitch, DatapathId dpidQueueSwitch, QosFlow qosflow);
+	public boolean registerQosTrafficFlow(QosTrafficFlow qosflow);
 	
-	public boolean deregisterFlow(DatapathId dpidMeterSwitch, DatapathId dpidQueueSwitch, QosFlow qosflow);
+	public boolean deregisterQosTrafficFlow(QosTrafficFlow qosflow);
 	
-	public Map<String, BigInteger> getNumPacketsHandled();
+	public Map<String, BigInteger> getNumPacketsHandledPerTrafficClass(DatapathId dpid);
 	
 }

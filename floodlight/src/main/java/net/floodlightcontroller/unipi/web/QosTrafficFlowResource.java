@@ -1,4 +1,4 @@
-package net.floodlightcontroller.unipi;
+package net.floodlightcontroller.unipi.web;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
@@ -17,9 +17,11 @@ import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import net.floodlightcontroller.unipi.QosTrafficFlow;
 
-public class FlowResource extends ServerResource {
-	protected static Logger log = LoggerFactory.getLogger(FlowResource.class);
+
+public class QosTrafficFlowResource extends ServerResource {
+	protected static Logger log = LoggerFactory.getLogger(QosTrafficFlowResource.class);
 	
 	
 	/**
@@ -27,10 +29,10 @@ public class FlowResource extends ServerResource {
 	 * @return  the list of flows.
 	 */
 	@Get("json")
-    public List<QosFlow> show() {
+    public List<QosTrafficFlow> show() {
 		ITrafficPrioritizerREST tp = (ITrafficPrioritizerREST) getContext().getAttributes()
 				.get(ITrafficPrioritizerREST.class.getCanonicalName());
-    	return (List<QosFlow>) tp.getFlows();
+    	return (List<QosTrafficFlow>) tp.getQosTrafficFlows();
     }
 	
 	@Post("json")
@@ -69,12 +71,12 @@ public class FlowResource extends ServerResource {
 			IPv4Address destAddr = IPv4Address.of(destAddrNode.asText());
 			int bandwidth = bandwidthNode.asInt();
 			
-			QosFlow qosflow = new QosFlow(sourceAddr, destAddr, bandwidth);
+			QosTrafficFlow qosTrafficFlow = new QosTrafficFlow(dpidMeterSwitch, dpidQueueSwitch, sourceAddr, destAddr, bandwidth);
 			
 			ITrafficPrioritizerREST tp = (ITrafficPrioritizerREST) getContext().getAttributes()
 					.get(ITrafficPrioritizerREST.class.getCanonicalName());
 			
-			if (!tp.registerFlow(dpidMeterSwitch, dpidQueueSwitch, qosflow)) {
+			if (!tp.registerQosTrafficFlow(qosTrafficFlow)) {
 				setStatus(Status.CLIENT_ERROR_BAD_REQUEST);
 				return new String("This flow was already registered");
 			}
@@ -123,12 +125,12 @@ public class FlowResource extends ServerResource {
 			IPv4Address destAddr = IPv4Address.of(destAddrNode.asText());
 			int bandwidth = bandwidthNode.asInt();
 			
-			QosFlow qosflow = new QosFlow(sourceAddr, destAddr, bandwidth);
+			QosTrafficFlow qosTrafficFlow = new QosTrafficFlow(dpidMeterSwitch, dpidQueueSwitch, sourceAddr, destAddr, bandwidth);
 			
 			ITrafficPrioritizerREST tp = (ITrafficPrioritizerREST) getContext().getAttributes()
 					.get(ITrafficPrioritizerREST.class.getCanonicalName());
 			
-			if (!tp.deregisterFlow(dpidMeterSwitch, dpidQueueSwitch, qosflow)) {
+			if (!tp.deregisterQosTrafficFlow(qosTrafficFlow)) {
 				setStatus(Status.CLIENT_ERROR_BAD_REQUEST);
 				return new String("This flow is not registered");
 			}

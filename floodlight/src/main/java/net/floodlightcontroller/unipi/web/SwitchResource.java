@@ -1,4 +1,4 @@
-package net.floodlightcontroller.unipi;
+package net.floodlightcontroller.unipi.web;
 
 import java.io.IOException;
 import java.math.BigInteger;
@@ -146,5 +146,5 @@ public class SwitchResource extends ServerResource {
 			setStatus(Status.SERVER_ERROR_INTERNAL);
 			return new String("Unknown error occurred");
 		}
-}
+	}
 }

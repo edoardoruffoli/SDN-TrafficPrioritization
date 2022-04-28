@@ -7,19 +7,16 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import net.floodlightcontroller.linkdiscovery.web.LinkWithType;
 
 public class SwitchQosDesc {
-	@JsonProperty("qos-enabled")
-	private Boolean qosEnabled;
+	
+	@JsonProperty("switch-type")
+	private String switchType;
 	
 	@JsonProperty("links")
 	private Set<LinkWithType> links;
 	
-	@JsonProperty("switch-type")
-	private String type;
-
-	public SwitchQosDesc(Boolean qosEnabled, Set<LinkWithType> links, String type) {
-		this.qosEnabled = qosEnabled;
+	public SwitchQosDesc(String switchType, Set<LinkWithType> links) {
 		this.links = links;
-		this.type = type;
+		this.switchType = switchType;
 	}
 
     /*
@@ -30,14 +27,6 @@ public class SwitchQosDesc {
         super();
     }
 
-	public Boolean getQosEnabled() {
-		return qosEnabled;
-	}
-
-	public void setQosEnabled(Boolean qosEnabled) {
-		this.qosEnabled = qosEnabled;
-	}
-
 	public Set<LinkWithType> getLinks() {
 		return links;
 	}
@@ -46,11 +35,11 @@ public class SwitchQosDesc {
 		this.links = links;
 	}
 
-	public String getType() {
-		return type;
+	public String getSwitchType() {
+		return switchType;
 	}
 
-	public void setType(String type) {
-		this.type = type;
+	public void setSwitchType(String switchType) {
+		this.switchType = switchType;
 	}	
 }

@@ -1,4 +1,4 @@
-package net.floodlightcontroller.unipi;
+package net.floodlightcontroller.unipi.web;
 
 import org.restlet.Context;
 import org.restlet.Restlet;
@@ -40,13 +40,10 @@ public class TrafficPrioritizerWebRoutable implements RestletRoutable {
          * @DELETE	permits to remove a registered flow.
          * 			@JSON:	"src_addr","dst_addr, "bandwidth"
          */
-		router.attach("/flow/json", FlowResource.class);
-		
-		/* This resource will show the list of switches connected to the controller */
-		router.attach("/controller/switches/json", ControllerSwitchesResource.class);
+		router.attach("/flow/json", QosTrafficFlowResource.class);
 		
 		// This resource will show the stats of traffic
-		router.attach("/queue/stats/json", QueueResource.class);
+		router.attach("/stats/json", QueueResource.class);
 		
 		return router;
 	}
