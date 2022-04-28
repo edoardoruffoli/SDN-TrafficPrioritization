@@ -63,10 +63,10 @@ def topology():
         info("*** Creating queues\n")
 	time.sleep(1)			# wait for the switches to start
 
-	s2.cmd('ovs-vsctl --all destroy Qos')
-	s2.cmd('ovs-vsctl --all destroy Queue')
-
-	s2.cmd('ovs-vsctl set port s2-eth2 qos=@newqos -- --id=@newqos create qos type=linux-htb queues:0=@q0, queues:1=@q1, queues:2=@q2 -- --id=@q0, create queue other-config:priority=0 -- --id=@q1, create queue other-config:priority=1 -- --id=@q2 create queue other-config:priority=2')
+	for s in s2, s3:
+		s.cmd('ovs-vsctl --all destroy Qos')
+		s.cmd('ovs-vsctl --all destroy Queue')
+		s.cmd('ovs-vsctl set port %s-eth2 qos=@newqos -- --id=@newqos create qos type=linux-htb queues:0=@q0, queues:1=@q1, queues:2=@q2 -- --id=@q0, create queue other-config:priority=0 -- --id=@q1, create queue other-config:priority=1 -- --id=@q2 create queue other-config:priority=2' %s.name)
 
         #net.plotGraph(max_x=100, max_y=100)
 
