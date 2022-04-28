@@ -8,6 +8,7 @@ import java.util.Set;
 
 import org.projectfloodlight.openflow.types.DatapathId;
 
+import javafx.util.Pair;
 import net.floodlightcontroller.core.module.IFloodlightService;
 import net.floodlightcontroller.linkdiscovery.Link;
 
@@ -17,18 +18,19 @@ import net.floodlightcontroller.linkdiscovery.Link;
 
 public interface ITrafficPrioritizerREST extends IFloodlightService {
 	
-	public boolean enableTrafficPrioritization(String sw);
-	
-	public boolean disableTrafficPrioritization(String sw);
-	
-	public List<QoSFlow> getFlows();
-	
 	public HashMap<DatapathId,SwitchQosDesc> getSwitchTopology();
 	
-	/* <IPSource, IPDestination, IPDSCPbits, (?) bandwidth> */
-	public boolean registerFlow(QoSFlow qosflow);
+	public List<String> getEnabledSwitches();
 	
-	public boolean deregisterFlow(QoSFlow qosflow);
+	public Integer enableTrafficPrioritization(DatapathId dpidMeterSwitch, DatapathId dpidQueueSwitch);
+	
+	public Integer disableTrafficPrioritization(DatapathId dpidMeterSwitch, DatapathId dpidQueueSwitch);
+	
+	public List<QosFlow> getFlows();
+	
+	public boolean registerFlow(DatapathId dpidMeterSwitch, DatapathId dpidQueueSwitch, QosFlow qosflow);
+	
+	public boolean deregisterFlow(DatapathId dpidMeterSwitch, DatapathId dpidQueueSwitch, QosFlow qosflow);
 	
 	public Map<String, BigInteger> getNumPacketsHandled();
 	

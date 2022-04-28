@@ -2,10 +2,10 @@ package net.floodlightcontroller.unipi;
 
 import org.projectfloodlight.openflow.types.IPv4Address;
 
-public class QoSFlow {
+public class QosFlow {
+	
 	private final IPv4Address sourceAddr;
 	private final IPv4Address destAddr;
-	// IPv4Address bits
 	private final Integer bandwidth;
 	
 	/**
@@ -14,7 +14,7 @@ public class QoSFlow {
 	 * @param destAddr
 	 * @param bandwidth
 	 */
-	public QoSFlow(IPv4Address sourceAddr, IPv4Address destAddr, Integer bandwidth) {
+	public QosFlow(IPv4Address sourceAddr, IPv4Address destAddr, Integer bandwidth) {
 		this.sourceAddr = sourceAddr;
 		this.destAddr = destAddr;
 		this.bandwidth = bandwidth;
@@ -32,7 +32,7 @@ public class QoSFlow {
 		return bandwidth;
 	}
 	
-	public boolean equals(QoSFlow qosflow) {
+	public boolean equals(QosFlow qosflow) {
 		return  qosflow.getSourceAddress().equals(this.getSourceAddress()) || 
 				qosflow.getDestAddress().equals(this.getDestAddress()) ||
 				qosflow.getBandwidth().equals(this.getBandwidth());

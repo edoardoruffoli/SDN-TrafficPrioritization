@@ -18,6 +18,7 @@ import java.util.concurrent.TimeUnit;
 import org.projectfloodlight.openflow.protocol.OFFactories;
 import org.projectfloodlight.openflow.protocol.OFFactory;
 import org.projectfloodlight.openflow.protocol.OFFlowAdd;
+import org.projectfloodlight.openflow.protocol.OFFlowDelete;
 import org.projectfloodlight.openflow.protocol.OFFlowMod;
 import org.projectfloodlight.openflow.protocol.OFFlowStatsEntry;
 import org.projectfloodlight.openflow.protocol.OFFlowStatsReply;
@@ -76,6 +77,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.util.concurrent.ListenableFuture;
 
+import javafx.util.Pair;
 import net.floodlightcontroller.core.FloodlightContext;
 import net.floodlightcontroller.core.IFloodlightProviderService;
 import net.floodlightcontroller.core.IOFMessageListener;
@@ -107,16 +109,18 @@ public class TrafficPrioritizer implements IFloodlightModule, IOFMessageListener
 	protected IOFSwitchService switchService;
 	protected ILinkDiscoveryService linkService;
 	
-	
 	// Logger
 	protected static Logger log;
 	
-	//private switchEnabled;
+	// Switches that implements Qos 
+	private List<Pair<DatapathId, DatapathId>> enabledSwitches = new ArrayList<>();
 	
-	// Flow Table
-	/* <IPSource, IPDestination, bandwidth> */	
+	// Qos flows
 	private FlowManager flowManager = new FlowManager(true);
 	
+	private final int QOS_SWITCH_BEST_EFFORT_QUEUE = 0;
+	private final int QOS_SWITCH_LESS_EFFORT_QUEUE = 1;
+	private final int QOS_SWITCH_QOS_QUEUE = 2;
 	
     /*
      * The default rule of a switch is to forward a packet to the controller.
@@ -199,9 +203,9 @@ public class TrafficPrioritizer implements IFloodlightModule, IOFMessageListener
 			
 			// Print the source MAC address
 			Long sourceMACHash = Ethernet.toLong(eth.getSourceMACAddress().getBytes());
-			System.out.printf("TRAFFIC PRIORITIZER MAC Address: {%s} seen on switch: {%s}\n",
+			/* System.out.printf("TRAFFIC PRIORITIZER MAC Address: {%s} seen on switch: {%s}\n",
 			HexString.toHexString(sourceMACHash),
-			sw.getId());
+			sw.getId());*/
 						
 			// Dissect Packet included in Packet-In
 			IPacket pkt = eth.getPayload();
@@ -214,33 +218,6 @@ public class TrafficPrioritizer implements IFloodlightModule, IOFMessageListener
 	}
 	
 	@Override
-	public boolean enableTrafficPrioritization(String dpid) {
-		
-		return true;
-		
-	}
-	
-	public boolean disableTrafficPrioritization(String dpid) {
-		return true;
-	}
-	
-	
-	@Override
-	public List<QoSFlow> getFlows(){
-    	List<QoSFlow> info = new ArrayList<>();
-
-        for (QoSFlow flow : flowManager.getFlows()) {
-            info.add(flow);
-        }
-
-        log.info("The list of flows has been provided.");
-        IOFSwitch sw = switchService.getSwitch(DatapathId.of(7)); /* The IOFSwitchService */
-        System.out.println(sw.getSwitchDescription().getManufacturerDescription());
-        System.out.println(sw.getSwitchDescription().getSoftwareDescription());
-    	return info;
-	} 
-	
-	@Override
 	public HashMap<DatapathId,SwitchQosDesc> getSwitchTopology() {
 		HashMap<DatapathId,SwitchQosDesc> topoInfo = new HashMap<DatapathId,SwitchQosDesc>();	
 		Map<DatapathId,Set<Link>> tmp = linkService.getSwitchLinks();
@@ -248,7 +225,6 @@ public class TrafficPrioritizer implements IFloodlightModule, IOFMessageListener
 		for (DatapathId dpid: tmp.keySet()) {
 			Boolean qos_enabled = true; //andare a implemnetare la funz che verifica se qos=1
 			String type_sw = switchService.getSwitch(dpid).getSwitchDescription().getHardwareDescription();
-			
 			// Transform Link to LinkWithType that implements serialization
 			Set<LinkWithType> linksWithType = linkToLinkWithInfo(tmp.get(dpid));
 			
@@ -259,6 +235,11 @@ public class TrafficPrioritizer implements IFloodlightModule, IOFMessageListener
 		return topoInfo;
 	}
 
+	/**
+	 * 
+	 * @param links
+	 * @return
+	 */
 	private Set<LinkWithType> linkToLinkWithInfo(Set<Link> links) {
         Set<LinkWithType> returnLinkSet = new HashSet<LinkWithType>();
         
@@ -296,18 +277,73 @@ public class TrafficPrioritizer implements IFloodlightModule, IOFMessageListener
 		return returnLinkSet;
 	}
 	
+	@Override	// Map is used because it renders better the info
+	public List<String> getEnabledSwitches() {
+		List<String> returnList = new ArrayList<>();
+		
+		for (Pair p : enabledSwitches) {
+			String s1 = "Meter Switch: " + p.getKey().toString();
+			String s2 = "Queue Switch: " + p.getValue().toString();
+			returnList.add(s1 + " - " + s2);
+		}
+		return returnList;
+	}
+	
 	@Override
-	public boolean registerFlow(QoSFlow qosflow) {
+	public Integer enableTrafficPrioritization(DatapathId dpidMeterSwitch, DatapathId dpidQueueSwitch) {		
+		// Check if the switches are connected to the Controller
+		if (switchService.getActiveSwitch(dpidMeterSwitch) == null || switchService.getActiveSwitch(dpidQueueSwitch) == null)
+			return -1;	
+		
+		// Check if the switches are already enabled
+		if (enabledSwitches.contains(new Pair(dpidMeterSwitch, dpidQueueSwitch)))
+			return -2;
+				
+		enabledSwitches.add(new Pair(dpidMeterSwitch, dpidQueueSwitch));
+		return 0;
+	}
+	
+	@Override
+	public Integer disableTrafficPrioritization(DatapathId dpidMeterSwitch, DatapathId dpidQueueSwitch) {
+		// Check if the switches are connected to the Controller
+		if (switchService.getActiveSwitch(dpidMeterSwitch) == null || switchService.getActiveSwitch(dpidQueueSwitch) == null)
+			return -1;	
+
+		if (!enabledSwitches.remove(new Pair(dpidMeterSwitch, dpidQueueSwitch)))
+			return -2;
+		
+		return 0;
+	}
+	
+	
+	@Override
+	public List<QosFlow> getFlows(){
+    	List<QosFlow> info = new ArrayList<>();
+
+        for (QosFlow flow : flowManager.getFlows()) {
+            info.add(flow);
+        }
+
+        log.info("The list of flows has been provided.");
+        IOFSwitch sw = switchService.getSwitch(DatapathId.of(7)); /* The IOFSwitchService */
+        
+    	return info;
+	} 
+	
+	@Override
+	public boolean registerFlow(DatapathId dpidMeterSwitch, DatapathId dpidQueueSwitch, QosFlow qosflow) {
 		if (!flowManager.addFlow(qosflow))
 			return false;
 		
-		// Check if switch implements qos
+		// Check if the switches are enabled
+		if (!enabledSwitches.contains(new Pair(dpidMeterSwitch, dpidQueueSwitch)))
+			return false;
 		
-		log.info("Registering QoS Flow [source_addr: " + qosflow.getSourceAddress() + " dest: " + qosflow.getDestAddress());
+		log.info("Registering Qos Flow [source_addr: " + qosflow.getSourceAddress() + " dest: " + qosflow.getDestAddress() + "]");
 		
-		// Bofuss (Meter Enabled Switch)
-        IOFSwitch sw = switchService.getSwitch(DatapathId.of(6)); /* The IOFSwitchService */
-        int meterId = 1;
+		// BOFUSS (Meter Enabled Switch)
+        IOFSwitch sw = switchService.getSwitch(dpidMeterSwitch); /* The IOFSwitchService */
+        int meterId = 1;	// Get next meterid
         
 		createMeter(sw, meterId, qosflow.getBandwidth(), /*burst*/0);		
 		installGoToMeterFlow(sw, meterId, qosflow);
@@ -317,23 +353,40 @@ public class TrafficPrioritizer implements IFloodlightModule, IOFMessageListener
          * packets remarked by the meter band with prec_level=1 will have ip_dscp=4, while non remarked packet will have ip_dscp=2.
          */
 		// OvS (Queue Enabled Switch)
-        sw = switchService.getSwitch(DatapathId.of(7)); /* The IOFSwitchService */
-        System.out.println(sw.getSwitchDescription().getManufacturerDescription());
-        System.out.println(sw.getSwitchDescription().getSoftwareDescription());
-        
+        sw = switchService.getSwitch(dpidQueueSwitch); /* The IOFSwitchService */
+
         /* Flow that are not conforming to the registered QoS traffic bandwidth are enqueued in the lowest priority queue */ 
-		installEnqueueBasedOnDscpFlow(sw, qosflow, 1, IpDscp.DSCP_4);
+		installEnqueueBasedOnDscpFlow(sw, qosflow, QOS_SWITCH_LESS_EFFORT_QUEUE, IpDscp.DSCP_4);
 		
 		/* Flow that are conforming to the registered traffic parameters are enqueued in the highest priority queue */
-		installEnqueueBasedOnDscpFlow(sw, qosflow, 2, IpDscp.DSCP_2);
+		installEnqueueBasedOnDscpFlow(sw, qosflow, QOS_SWITCH_QOS_QUEUE, IpDscp.DSCP_2);
 		
 		return true;	
 	}
 	
 	@Override
-	public boolean deregisterFlow(QoSFlow qosflow) {
+	public boolean deregisterFlow(DatapathId dpidMeterSwitch, DatapathId dpidQueueSwitch, QosFlow qosflow) {
 		if (!flowManager.removeFlow(qosflow))
 			return false;
+		
+		log.info("De-registering Qos Flow [source_addr: " + qosflow.getSourceAddress() + " dest: " + qosflow.getDestAddress() + "]");
+		
+		// BOFUSS (Meter Enabled Switch)
+        IOFSwitch sw = switchService.getSwitch(dpidMeterSwitch); /* The IOFSwitchService */
+        // Get meterid
+        int meterId = 1;
+		removeMeter(sw, meterId);		
+		removeGoToMeterFlow(sw, meterId, qosflow);
+        removeSetTosFlow(sw, qosflow);
+
+		// OvS (Queue Enabled Switch)
+        sw = switchService.getSwitch(dpidQueueSwitch); /* The IOFSwitchService */
+
+        /* Flow that are not conforming to the registered QoS traffic bandwidth are enqueued in the lowest priority queue */ 
+		removeEnqueueBasedOnDscpFlow(sw, qosflow, QOS_SWITCH_LESS_EFFORT_QUEUE, IpDscp.DSCP_4);
+		
+		/* Flow that are conforming to the registered traffic parameters are enqueued in the highest priority queue */
+		removeEnqueueBasedOnDscpFlow(sw, qosflow, QOS_SWITCH_QOS_QUEUE, IpDscp.DSCP_2);
 		
 		return true;
 	}
@@ -349,7 +402,7 @@ public class TrafficPrioritizer implements IFloodlightModule, IOFMessageListener
 	 * @param sw
 	 * @param qosflow
 	 */
-	private void installSetTosFlow(final IOFSwitch sw, QoSFlow qosflow) {
+	private void installSetTosFlow(final IOFSwitch sw, QosFlow qosflow) {
 		log.info("Installing flow default ToS for registered QoS traffic instruction on switch "+ sw.getId());
 		
 		OFFactory factory = sw.getOFFactory();
@@ -394,6 +447,50 @@ public class TrafficPrioritizer implements IFloodlightModule, IOFMessageListener
         sw.write(flowAdd);
 	}
 	
+	private void removeSetTosFlow(final IOFSwitch sw, QosFlow qosflow) {
+		log.info("removing flow default ToS for registered QoS traffic instruction on switch "+ sw.getId());
+		
+		OFFactory factory = sw.getOFFactory();
+		
+		List<OFInstruction> instructions = new ArrayList<OFInstruction>();
+		ArrayList<OFAction> actions = new ArrayList<OFAction>();
+		
+		/* Setting default Type of Service value */
+		OFActionSetField dscp = factory.actions().buildSetField()
+				.setField(factory.oxms().buildIpDscp()
+						.setValue(IpDscp.DSCP_2)		// Corresponding to ToS 0x08
+						.build())
+				.build();	
+		actions.add(dscp);
+		
+		OFInstructionApplyActions setTos = factory.instructions().buildApplyActions()
+				.setActions(actions)
+				.build();
+		instructions.add(setTos);
+		
+		OFInstructionGotoTable goToTable = factory.instructions().buildGotoTable()
+				.setTableId(TableId.of(1))
+				.build();
+		
+		instructions.add(goToTable);
+		
+		/* Matching registered QoS traffic parameters */
+		Match.Builder matchBuilder = sw.getOFFactory().buildMatch();
+		matchBuilder.setExact(MatchField.ETH_TYPE, EthType.IPv4)
+	        .setExact(MatchField.IPV4_SRC, qosflow.getSourceAddress())
+	        .setExact(MatchField.IPV4_DST, qosflow.getDestAddress());
+			 
+		/* Flow will send matched packets to table 1 to match the GotoMeter flow */
+		OFFlowDelete flowDelete = factory.buildFlowDelete()
+		    .setTableId(TableId.of(0))
+		    .setInstructions(instructions)
+		    .setMatch(matchBuilder.build())
+		    .build();
+		
+		 /* Send flow modification message to switch */
+        sw.write(flowDelete);
+	}
+	
 	/**
 	 * Create and install a meter of type dscp_remark in a switch.
 	 * 
@@ -431,13 +528,38 @@ public class TrafficPrioritizer implements IFloodlightModule, IOFMessageListener
 	}
 	
 	/**
+	 * Remove a meter of type dscp_remark from a switch.
+	 * 
+	 * @param sw 			the switch in which install the meter.
+	 * @param meterId		the id of the meter
+	 * @param rate			the maximum bandwidth rate
+	 * @param burstSize		burst
+	 */
+	
+	private void removeMeter(final IOFSwitch sw, final long meterId) {
+		log.info("Removing meter " + meterId + " on switch "+ sw.getId());
+		
+		OFFactory factory = sw.getOFFactory();
+        
+        /* Create meter delete message */
+        OFMeterMod.Builder meterModBuilder = factory.buildMeterMod()
+            .setMeterId(meterId)
+            .setCommand(OFMeterModCommand.DELETE);
+        	
+        /* Send meter modification message to switch */
+        sw.write(meterModBuilder.build());
+        
+        return;
+	}
+	
+	/**
 	 * 
 	 * @param sw
 	 * @param meterId
 	 * @param qosflow
 	 * @return
 	 */
-	private void installGoToMeterFlow(final IOFSwitch sw, final long meterId, QoSFlow qosflow) {
+	private void installGoToMeterFlow(final IOFSwitch sw, final long meterId, QosFlow qosflow) {
 		log.info("installing go-to-meter flow instruction " + meterId + " on switch "+ sw.getId());
 				
 		OFFactory factory = sw.getOFFactory();
@@ -488,7 +610,56 @@ public class TrafficPrioritizer implements IFloodlightModule, IOFMessageListener
 	 * @param qosflow
 	 * @return
 	 */
-	private void installEnqueueBasedOnDscpFlow(final IOFSwitch sw, QoSFlow qosflow, int queueId, IpDscp dscp) {
+	private void removeGoToMeterFlow(final IOFSwitch sw, final long meterId, QosFlow qosflow) {
+		log.info("removing go-to-meter flow instruction " + meterId + " on switch "+ sw.getId());
+				
+		OFFactory factory = sw.getOFFactory();
+		
+		List<OFInstruction> instructions = new ArrayList<OFInstruction>();
+		ArrayList<OFAction> actions = new ArrayList<OFAction>();
+		
+		/* Add Goto Meter instructions */
+		OFInstructionMeter meter = factory.instructions().buildMeter()
+			.setMeterId(meterId)
+			.build();
+		
+		OFActionOutput port = factory.actions().buildOutput().setPort(OFPort.ALL).build();
+		actions.add(port);
+
+		OFInstructionApplyActions output = factory.instructions().buildApplyActions()
+				.setActions(actions)
+				.build();
+		 
+		/*
+		 * Regardless of the instruction order in the flow, the switch is required 
+		 * to process the meter instruction prior to any apply actions instruction.
+		 */
+		instructions.add(meter);
+		instructions.add(output);
+		
+		Match.Builder matchBuilder = sw.getOFFactory().buildMatch();
+		matchBuilder.setExact(MatchField.ETH_TYPE, EthType.IPv4)
+	        .setExact(MatchField.IPV4_SRC, qosflow.getSourceAddress())
+	        .setExact(MatchField.IPV4_DST, qosflow.getDestAddress());
+		
+		OFFlowDelete flowDelete = factory.buildFlowDelete()
+				.setInstructions(instructions)
+				.setTableId(TableId.of(1))
+				.setMatch(matchBuilder.build())
+				.build();
+				
+		 /* Send flow delete message to switch */
+        sw.write(flowDelete);
+	}
+	
+	/**
+	 * 
+	 * @param sw
+	 * @param meterId
+	 * @param qosflow
+	 * @return
+	 */
+	private void installEnqueueBasedOnDscpFlow(final IOFSwitch sw, QosFlow qosflow, int queueId, IpDscp dscp) {
 		log.info("installing QoS flow instruction on switch "+ sw.getId());
 		
 		ArrayList<OFAction> actions = new ArrayList<OFAction>();
@@ -518,6 +689,44 @@ public class TrafficPrioritizer implements IFloodlightModule, IOFMessageListener
 		
 		 /* Send meter modification message to switch */
         sw.write(flowAdd);
+	}
+	
+	/**
+	 * 
+	 * @param sw
+	 * @param meterId
+	 * @param qosflow
+	 * @return
+	 */
+	private void removeEnqueueBasedOnDscpFlow(final IOFSwitch sw, QosFlow qosflow, int queueId, IpDscp dscp) {
+		log.info("removing QoS enqueue flow instruction on switch "+ sw.getId());
+		
+		ArrayList<OFAction> actions = new ArrayList<OFAction>();
+		OFFactory factory = sw.getOFFactory();
+
+		OFActionSetQueue setQueue = factory.actions().buildSetQueue()
+		        .setQueueId(queueId)
+		        .build();
+		actions.add(setQueue);
+		
+		OFActionOutput output = factory.actions().buildOutput()
+				.setPort(OFPort.ALL)
+				.build();
+		actions.add(output);
+		
+		Match.Builder matchBuilder = sw.getOFFactory().buildMatch();
+		matchBuilder.setExact(MatchField.ETH_TYPE, EthType.IPv4)
+	        .setExact(MatchField.IPV4_SRC, qosflow.getSourceAddress())
+	        .setExact(MatchField.IPV4_DST, qosflow.getDestAddress())
+	        .setExact(MatchField.IP_DSCP, dscp);
+			 
+		OFFlowDelete flowDelete = factory.buildFlowDelete()
+				.setMatch(matchBuilder.build())
+			    .setPriority(1)
+			    .build();
+		
+		 /* Send meter modification message to switch */
+        sw.write(flowDelete);
 	}
 	
 	@Override
@@ -555,38 +764,7 @@ public class TrafficPrioritizer implements IFloodlightModule, IOFMessageListener
 		} catch (InterruptedException | ExecutionException | java.util.concurrent.TimeoutException e) {
 		    e.printStackTrace();
 		}
-		
-		
-		/*
-		OFFlowStatsRequest sr = factory.buildFlowStatsRequest()
-                .setMatch(match)
-                .setOutPort(OFPort.ANY)
-                .setTableId(TableId.ALL)
-                .setOutGroup(OFGroup.ANY)
-				.build();
-		ListenableFuture<List<OFFlowStatsReply>> future = sw.writeStatsRequest(sr);
-		
-		try {
-			// Wait up to 10s for a reply; return when received; else exception thrown
-		    List<OFFlowStatsReply> replies = future.get(10, TimeUnit.SECONDS);
-		    
-		    for (OFFlowStatsReply reply : replies) {
-		        for (OFFlowStatsEntry e : reply.getEntries()) {
-		        	IpDscp c = e.getMatch().get(MatchField.IP_DSCP);  
-		 
-		        	if (c == null)
-		        		classStats.merge("Best Effort Traffic", e.getPacketCount().getBigInteger(), (a, b) -> a.add(b));
-		        	else if (c.equals(IpDscp.DSCP_2))
-		        		classStats.merge("Conformant QoS Traffic", e.getPacketCount().getBigInteger(), (a, b) -> a.add(b));
-		        	else if(c.equals(IpDscp.DSCP_4))
-			        	classStats.merge("Non-conformant QoS Traffic", e.getPacketCount().getBigInteger(), (a, b) -> a.add(b));
-		        }
-		    }
-		} catch (InterruptedException | ExecutionException | java.util.concurrent.TimeoutException e) {
-		    e.printStackTrace();
-		}
-		*/
-		
+				
 		return classStats;
 	}
 }

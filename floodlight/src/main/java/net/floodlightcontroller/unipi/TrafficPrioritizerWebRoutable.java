@@ -18,27 +18,36 @@ public class TrafficPrioritizerWebRoutable implements RestletRoutable {
 	public Restlet getRestlet(Context context) {
 		
 		Router router = new Router(context);
+		
+		/* This resource show the topology information related to the Qos service*/
+		router.attach("/switches/topology", TopologySwitchResource.class);
+		
+        /*
+         * This resource will manage the list of switches that supports Qos.
+         * @GET 	permits to retrieve the list of switches providing the service.
+         * @POST 	permits to enable the Qos on a pair of switches.
+         * 			@JSON:	"dpid-meter-switch","dpid-queue-switch"
+         * @DELETE	permits to disable the Qos on a pair of switches.
+         * 			@JSON:	"dpid-meter-switch","dpid-queue-switch"
+         */
+		router.attach("/switches/json", SwitchResource.class);
 
         /*
          * This resource will manage the list of flows.
          * @GET 	permits to retrieve the list of servers providing the service.
          * @POST 	permits to register a new flow.
-         * 			@JSON:	"source_address","dest_address, "bandwidth"
+         * 			@JSON:	"src_addr","dst_addr, "bandwidth"
          * @DELETE	permits to remove a registered flow.
-         * 			@JSON:	"source_address","dest_address, "bandwidth"
+         * 			@JSON:	"src_addr","dst_addr, "bandwidth"
          */
 		router.attach("/flow/json", FlowResource.class);
 		
-		// This resource will show the list of modules loaded in the controller
-		//router.attach("/module/loaded/json", UnregisterFlow.class);
-		
-		// This resource will show the list of switches connected to the controller
-		router.attach("/switches/json", ControllerSwitchesResource.class);
+		/* This resource will show the list of switches connected to the controller */
+		router.attach("/controller/switches/json", ControllerSwitchesResource.class);
 		
 		// This resource will show the stats of traffic
-		router.attach("/switches/stats/json", SwitchResource.class);
+		router.attach("/queue/stats/json", QueueResource.class);
 		
-		router.attach("/switches/topology", TopologySwitchResource.class);
 		return router;
 	}
 

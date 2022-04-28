@@ -13,18 +13,18 @@ public class FlowManager {
 	
 	protected static final Logger log = LoggerFactory.getLogger(FlowManager.class);
 	
-	private final List<QoSFlow> flows;
+	private final List<QosFlow> flows;
 	
 	public FlowManager(boolean verbose) {
 		this.flows = new ArrayList<>();
 		this.verboseMode = verbose;
 	}
 	
-	public List<QoSFlow> getFlows() {
+	public List<QosFlow> getFlows() {
 		return flows;
 	}
 	
-	public boolean addFlow(QoSFlow qosflow) {
+	public boolean addFlow(QosFlow qosflow) {
 		if (verboseMode) {
 			log.debug("A server has been added to the pool");
 		}
@@ -34,8 +34,8 @@ public class FlowManager {
 		return true;
 	}
 	
-	public boolean removeFlow(QoSFlow qosflow) {
-		Iterator<QoSFlow> i = flows.iterator();
+	public boolean removeFlow(QosFlow qosflow) {
+		Iterator<QosFlow> i = flows.iterator();
 		boolean foundIt = false;
 		
 		while (i.hasNext()) {
