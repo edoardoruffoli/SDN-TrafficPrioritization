@@ -1,20 +1,27 @@
 package net.floodlightcontroller.unipi;
 
+import java.io.IOException;
 import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonSerializer;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
-import net.floodlightcontroller.linkdiscovery.web.LinkWithType;
+import net.floodlightcontroller.linkdiscovery.Link;
 
-public class SwitchQosDesc {
+@JsonSerialize(using=SwitchQosDesc.class)
+public class SwitchQosDesc extends JsonSerializer<SwitchQosDesc> {
 	
 	@JsonProperty("switch-type")
 	private String switchType;
 	
 	@JsonProperty("links")
-	private Set<LinkWithType> links;
+	private Set<Link> links;
 	
-	public SwitchQosDesc(String switchType, Set<LinkWithType> links) {
+	public SwitchQosDesc(String switchType, Set<Link> links) {
 		this.links = links;
 		this.switchType = switchType;
 	}
@@ -27,11 +34,11 @@ public class SwitchQosDesc {
         super();
     }
 
-	public Set<LinkWithType> getLinks() {
+	public Set<Link> getLinks() {
 		return links;
 	}
 
-	public void setLinks(Set<LinkWithType> links) {
+	public void setLinks(Set<Link> links) {
 		this.links = links;
 	}
 
@@ -41,5 +48,26 @@ public class SwitchQosDesc {
 
 	public void setSwitchType(String switchType) {
 		this.switchType = switchType;
+	}
+
+	@Override
+	public void serialize(SwitchQosDesc sqd, JsonGenerator jgen, SerializerProvider arg2)
+			throws IOException, JsonProcessingException {
+		
+        jgen.writeStartObject();
+        jgen.writeStringField("switch-type", sqd.getSwitchType().toString());
+        jgen.writeArrayFieldStart("switch-links");
+        
+        for (Link l : sqd.getLinks()) {
+            jgen.writeStartObject();
+        	jgen.writeStringField("src-switch", l.getSrc().toString());
+        	jgen.writeNumberField("src-port", l.getDstPort().getPortNumber());
+        	jgen.writeStringField("dst-switch", l.getDst().toString());
+        	jgen.writeNumberField("dst-port", l.getDstPort().getPortNumber());
+        	jgen.writeNumberField("latency", l.getLatency().getValue());
+        	jgen.writeEndObject();
+        }
+        jgen.writeEndArray();
+        jgen.writeEndObject();	
 	}	
 }

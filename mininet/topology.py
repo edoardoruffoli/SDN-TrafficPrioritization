@@ -76,7 +76,7 @@ def topology():
 	for h in h1, h2, h3, h4, h5:
 		#h.cmd( 'ethtool -K', h.defaultIntf(), 'tx', tx, 'rx', rx )
 		h.cmd( 'ethtool -K', h.defaultIntf(), 'tx off' )
-
+	
 	CLI( net )
 
 	net.stop()

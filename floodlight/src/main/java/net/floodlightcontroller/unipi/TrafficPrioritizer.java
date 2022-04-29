@@ -11,39 +11,24 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeoutException;
-import java.util.function.BiFunction;
 import java.util.concurrent.TimeUnit;
 
-import org.projectfloodlight.openflow.protocol.OFFactories;
 import org.projectfloodlight.openflow.protocol.OFFactory;
 import org.projectfloodlight.openflow.protocol.OFFlowAdd;
 import org.projectfloodlight.openflow.protocol.OFFlowDelete;
-import org.projectfloodlight.openflow.protocol.OFFlowMod;
-import org.projectfloodlight.openflow.protocol.OFFlowStatsEntry;
-import org.projectfloodlight.openflow.protocol.OFFlowStatsReply;
-import org.projectfloodlight.openflow.protocol.OFFlowStatsRequest;
 import org.projectfloodlight.openflow.protocol.OFMessage;
 import org.projectfloodlight.openflow.protocol.OFMeterFlags;
 import org.projectfloodlight.openflow.protocol.OFMeterMod;
 import org.projectfloodlight.openflow.protocol.OFMeterModCommand;
 import org.projectfloodlight.openflow.protocol.OFPacketIn;
-import org.projectfloodlight.openflow.protocol.OFPacketOut;
-import org.projectfloodlight.openflow.protocol.OFPacketQueue;
-import org.projectfloodlight.openflow.protocol.OFPortDesc;
-import org.projectfloodlight.openflow.protocol.OFQueueGetConfigReply;
-import org.projectfloodlight.openflow.protocol.OFQueueGetConfigRequest;
 import org.projectfloodlight.openflow.protocol.OFQueueStatsEntry;
 import org.projectfloodlight.openflow.protocol.OFQueueStatsReply;
 import org.projectfloodlight.openflow.protocol.OFQueueStatsRequest;
 import org.projectfloodlight.openflow.protocol.OFType;
-import org.projectfloodlight.openflow.protocol.OFVersion;
 import org.projectfloodlight.openflow.protocol.action.OFAction;
 import org.projectfloodlight.openflow.protocol.action.OFActionOutput;
 import org.projectfloodlight.openflow.protocol.action.OFActionSetField;
-import org.projectfloodlight.openflow.protocol.action.OFActionSetNwTos;
 import org.projectfloodlight.openflow.protocol.action.OFActionSetQueue;
-import org.projectfloodlight.openflow.protocol.actionid.OFActionIdSetField;
 import org.projectfloodlight.openflow.protocol.instruction.OFInstruction;
 import org.projectfloodlight.openflow.protocol.instruction.OFInstructionApplyActions;
 import org.projectfloodlight.openflow.protocol.instruction.OFInstructionGotoTable;
@@ -51,27 +36,13 @@ import org.projectfloodlight.openflow.protocol.instruction.OFInstructionMeter;
 import org.projectfloodlight.openflow.protocol.match.Match;
 import org.projectfloodlight.openflow.protocol.match.MatchField;
 import org.projectfloodlight.openflow.protocol.meterband.OFMeterBand;
-import org.projectfloodlight.openflow.protocol.meterband.OFMeterBandDrop;
-import org.projectfloodlight.openflow.protocol.meterband.OFMeterBandDscpRemark;
 import org.projectfloodlight.openflow.protocol.meterband.OFMeterBandDscpRemark.Builder;
-import org.projectfloodlight.openflow.protocol.meterband.OFMeterBandExperimenter;
-import org.projectfloodlight.openflow.protocol.oxm.OFOxm;
-import org.projectfloodlight.openflow.protocol.queueprop.OFQueueProp;
-import org.projectfloodlight.openflow.protocol.queueprop.OFQueuePropMaxRate;
-import org.projectfloodlight.openflow.protocol.queueprop.OFQueuePropMinRate;
-import org.projectfloodlight.openflow.protocol.ver13.OFQueuePropertiesSerializerVer13;
 import org.projectfloodlight.openflow.types.DatapathId;
 import org.projectfloodlight.openflow.types.EthType;
 import org.projectfloodlight.openflow.types.IPv4Address;
 import org.projectfloodlight.openflow.types.IpDscp;
-import org.projectfloodlight.openflow.types.IpProtocol;
-import org.projectfloodlight.openflow.types.MacAddress;
-import org.projectfloodlight.openflow.types.OFBufferId;
-import org.projectfloodlight.openflow.types.OFGroup;
 import org.projectfloodlight.openflow.types.OFPort;
 import org.projectfloodlight.openflow.types.TableId;
-import org.projectfloodlight.openflow.types.U64;
-import org.projectfloodlight.openflow.util.HexString;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -89,17 +60,9 @@ import net.floodlightcontroller.core.module.IFloodlightModule;
 import net.floodlightcontroller.core.module.IFloodlightService;
 import net.floodlightcontroller.linkdiscovery.ILinkDiscoveryService;
 import net.floodlightcontroller.linkdiscovery.Link;
-import net.floodlightcontroller.linkdiscovery.ILinkDiscovery.LinkDirection;
-import net.floodlightcontroller.linkdiscovery.ILinkDiscovery.LinkType;
-import net.floodlightcontroller.linkdiscovery.internal.LinkInfo;
-import net.floodlightcontroller.linkdiscovery.web.LinkWithType;
-import net.floodlightcontroller.packet.ARP;
 import net.floodlightcontroller.packet.Ethernet;
-import net.floodlightcontroller.packet.ICMP;
 import net.floodlightcontroller.packet.IPacket;
-import net.floodlightcontroller.packet.IPv4;
 import net.floodlightcontroller.restserver.IRestApiService;
-import net.floodlightcontroller.staticentry.StaticEntryPusher;
 import net.floodlightcontroller.unipi.web.ITrafficPrioritizerREST;
 import net.floodlightcontroller.unipi.web.TrafficPrioritizerWebRoutable;
 
@@ -221,69 +184,24 @@ public class TrafficPrioritizer implements IFloodlightModule, IOFMessageListener
 	public HashMap<DatapathId,SwitchQosDesc> getSwitchTopology() {
 		HashMap<DatapathId,SwitchQosDesc> topoInfo = new HashMap<DatapathId,SwitchQosDesc>();	
 		Map<DatapathId,Set<Link>> tmp = linkService.getSwitchLinks();
-		
-		for (DatapathId dpid: tmp.keySet()) {
-			Boolean qosEnabled = true;
-					
+
+		for (DatapathId dpid: tmp.keySet()) {					
 			String typeSw = switchService.getSwitch(dpid).getSwitchDescription().getHardwareDescription();
 			
-			// Transform Link to LinkWithType that implements serialization
-			Set<LinkWithType> linksWithType = linkToLinkWithInfo(tmp.get(dpid));
+			Set<Link> links = tmp.get(dpid);
 			
-			SwitchQosDesc swDesc = new SwitchQosDesc(typeSw, linksWithType);
+			SwitchQosDesc swDesc = new SwitchQosDesc(typeSw, links);
 			topoInfo.put(dpid, swDesc);
 		}
 		
 		return topoInfo;
-	}
-
-	/**
-	 * 
-	 * @param links
-	 * @return
-	 */
-	private Set<LinkWithType> linkToLinkWithInfo(Set<Link> links) {
-        Set<LinkWithType> returnLinkSet = new HashSet<LinkWithType>();
-        
-		for (Link link: links) {
-			LinkInfo info = linkService.getLinkInfo(link);
-            LinkType type = linkService.getLinkType(link, info);
-            if (type == LinkType.DIRECT_LINK || type == LinkType.TUNNEL) {
-            	LinkWithType lwt;
-
-                DatapathId src = link.getSrc();
-                DatapathId dst = link.getDst();
-                OFPort srcPort = link.getSrcPort();
-                OFPort dstPort = link.getDstPort();
-                Link otherLink = new Link(dst, dstPort, src, srcPort, U64.ZERO /* not important in lookup */);
-                LinkInfo otherInfo = linkService.getLinkInfo(otherLink);
-                LinkType otherType = null;
-                if (otherInfo != null)
-                    otherType = linkService.getLinkType(otherLink, otherInfo);
-                if (otherType == LinkType.DIRECT_LINK || otherType == LinkType.TUNNEL) {
-	                 // This is a bi-direcitonal link.
-	                 // It is sufficient to add only one side of it.
-	                 if ((src.getLong() < dst.getLong()) || (src.getLong() == dst.getLong()
-	                     		&& srcPort.getPortNumber() < dstPort.getPortNumber())) {
-	                     lwt = new LinkWithType(link, type, LinkDirection.BIDIRECTIONAL);
-	                      returnLinkSet.add(lwt);
-	                  }
-                } else {
-                        // This is a unidirectional link.
-                       lwt = new LinkWithType(link, type, LinkDirection.UNIDIRECTIONAL);
-                       returnLinkSet.add(lwt);
-                }
-            }
-        }
-		
-		return returnLinkSet;
 	}
 	
 	@Override
 	public List<String> getEnabledSwitches() {
 		List<String> returnList = new ArrayList<>();
 		
-		for (Pair p : qosTrafficManager.getQosEnabledSwitches()) {
+		for (Pair<?, ?> p : qosTrafficManager.getQosEnabledSwitches()) {
 			String s1 = "Meter Switch: " + p.getKey().toString();
 			String s2 = "Queue Switch: " + p.getValue().toString();
 			returnList.add(s1 + " - " + s2);
@@ -301,7 +219,7 @@ public class TrafficPrioritizer implements IFloodlightModule, IOFMessageListener
 			return -1;	
 		
 		// Check if the switches are already enabled
-		if (qosTrafficManager.getQosEnabledSwitches().contains(new Pair(dpidMeterSwitch, dpidQueueSwitch)))
+		if (qosTrafficManager.getQosEnabledSwitches().contains(new Pair<DatapathId, DatapathId>(dpidMeterSwitch, dpidQueueSwitch)))
 			return -2;
 				
 		qosTrafficManager.addQosEnabledSwitches(dpidMeterSwitch, dpidQueueSwitch);
@@ -335,19 +253,19 @@ public class TrafficPrioritizer implements IFloodlightModule, IOFMessageListener
 	} 
 	
 	@Override
-	public boolean registerQosTrafficFlow(QosTrafficFlow qosTrafficFlow) {
+	public Integer registerQosTrafficFlow(QosTrafficFlow qosTrafficFlow) {
 		log.info("Registering Qos Flow [source_addr: " + qosTrafficFlow.getSourceAddr() + " dest: " + qosTrafficFlow.getDestAddr() + "]");
 		
 		// Check if the switches are enabled
-		if (!qosTrafficManager.getQosEnabledSwitches().contains(new Pair(qosTrafficFlow.getDpidMeterSwitch(), qosTrafficFlow.getDpidQueueSwitch())))
-			return false;
+		if (!qosTrafficManager.getQosEnabledSwitches().contains(new Pair<DatapathId, DatapathId>(qosTrafficFlow.getDpidMeterSwitch(), qosTrafficFlow.getDpidQueueSwitch())))
+			return -1;
 		
         /* The next non used meter id */
         qosTrafficFlow.setMeterId(qosTrafficManager.getNextMeterId());
         
 		// Add the Qos Traffic Flow 
 		if (!qosTrafficManager.addQosTrafficFlow(qosTrafficFlow))
-			return false;
+			return -2;
 		
 		// BOFUSS (Meter Enabled Switch)
         IOFSwitch sw = switchService.getSwitch(qosTrafficFlow.getDpidMeterSwitch()); /* The IOFSwitchService */
@@ -368,7 +286,7 @@ public class TrafficPrioritizer implements IFloodlightModule, IOFMessageListener
 		/* Flow that are conforming to the registered traffic parameters are enqueued in the highest priority queue */
 		installEnqueueBasedOnDscpFlow(sw, qosTrafficFlow.getSourceAddr(), qosTrafficFlow.getDestAddr(), QOS_SWITCH_QOS_QUEUE, IpDscp.DSCP_2);
 		
-		return true;	
+		return 0;	
 	}
 	
 	@Override
@@ -746,11 +664,10 @@ public class TrafficPrioritizer implements IFloodlightModule, IOFMessageListener
 	public Map<String, BigInteger> getNumPacketsHandledPerTrafficClass(DatapathId dpid) {		
 		log.info("Class statistics requested");
 		
-		Map<String, BigInteger> classStats = new HashMap();
+		Map<String, BigInteger> classStats = new HashMap<String, BigInteger>();
 		IOFSwitch sw = switchService.getSwitch(dpid);		
 		OFFactory factory = sw.getOFFactory();
 		
-		Match match = sw.getOFFactory().buildMatch().build();
 		OFQueueStatsRequest sr = factory.buildQueueStatsRequest()
 				.setQueueId(-1)
 				.build();

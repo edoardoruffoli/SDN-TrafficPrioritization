@@ -30,7 +30,7 @@ public interface ITrafficPrioritizerREST extends IFloodlightService {
 	
 	public List<QosTrafficFlow> getQosTrafficFlows();
 	
-	public boolean registerQosTrafficFlow(QosTrafficFlow qosflow);
+	public Integer registerQosTrafficFlow(QosTrafficFlow qosflow);
 	
 	public boolean deregisterQosTrafficFlow(QosTrafficFlow qosflow);
 	

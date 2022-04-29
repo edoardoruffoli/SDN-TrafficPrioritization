@@ -76,12 +76,17 @@ public class QosTrafficFlowResource extends ServerResource {
 			ITrafficPrioritizerREST tp = (ITrafficPrioritizerREST) getContext().getAttributes()
 					.get(ITrafficPrioritizerREST.class.getCanonicalName());
 			
-			if (!tp.registerQosTrafficFlow(qosTrafficFlow)) {
+			int ret = tp.registerQosTrafficFlow(qosTrafficFlow);
+			if (ret == -1) {
 				setStatus(Status.CLIENT_ERROR_BAD_REQUEST);
-				return new String("This flow was already registered");
+				return new String("The speicifed pair of switches is not enabled to support Qos");
 			}
-			
-			return new String("OK");
+			else if (ret == -2) {
+				setStatus(Status.CLIENT_ERROR_BAD_REQUEST);
+				return new String("This Qos Traffic Flow has been already registered");
+			}
+			else 
+				return new String("OK");
 
 		} catch (IOException e) {
 			e.printStackTrace();
