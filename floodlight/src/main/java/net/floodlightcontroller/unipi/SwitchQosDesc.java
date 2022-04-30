@@ -13,6 +13,9 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import net.floodlightcontroller.linkdiscovery.Link;
 
 @JsonSerialize(using=SwitchQosDesc.class)
+/**
+ * Class that is used to serialize the topology information of the switches
+ */
 public class SwitchQosDesc extends JsonSerializer<SwitchQosDesc> {
 	
 	@JsonProperty("switch-type")
