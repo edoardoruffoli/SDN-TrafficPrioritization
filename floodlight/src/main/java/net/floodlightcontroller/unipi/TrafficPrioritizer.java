@@ -578,12 +578,21 @@ public class TrafficPrioritizer implements IFloodlightModule, IOFMessageListener
 	@Override
 	public HashMap<DatapathId,SwitchQosDesc> getSwitchTopology() {
 		HashMap<DatapathId,SwitchQosDesc> topoInfo = new HashMap<DatapathId,SwitchQosDesc>();	
-		Map<DatapathId,Set<Link>> tmp = linkService.getSwitchLinks();
+		Map<DatapathId,Set<Link>> links = linkService.getSwitchLinks();
 
-		for (DatapathId dpid: tmp.keySet()) {					
+		for (DatapathId dpid: links.keySet()) {					
 			String typeSw = switchService.getSwitch(dpid).getSwitchDescription().getHardwareDescription();
-			Set<Link> links = tmp.get(dpid);
-			SwitchQosDesc swDesc = new SwitchQosDesc(typeSw, links);
+			Set<Link> tmp = links.get(dpid);
+			
+			// Links of the current switch
+			Set<Link> curLinks = new HashSet<>();
+			
+			// Remove the duplicate links (considers only the links which have the current switch as source switch
+			for (Link l: tmp) {
+				if (l.getSrc().equals(dpid))
+					curLinks.add(l);
+			}
+			SwitchQosDesc swDesc = new SwitchQosDesc(typeSw, curLinks);
 			topoInfo.put(dpid, swDesc);
 		}
 		
@@ -630,6 +639,16 @@ public class TrafficPrioritizer implements IFloodlightModule, IOFMessageListener
 		if (switchService.getActiveSwitch(dpidMeterSwitch) == null || switchService.getActiveSwitch(dpidQueueSwitch) == null)
 			return -1;	
 
+		// Remove all the registered QoS traffic flows
+		// Use a copy of the flow list because deregisterQosTrafficFlow modifies it
+		List<QosTrafficFlow> tmp = new ArrayList<>(qosTrafficManager.getQosTrafficFlows());
+		
+		for (QosTrafficFlow qtf: tmp) {
+			if (dpidMeterSwitch.equals(qtf.getDpidMeterSwitch())  && dpidQueueSwitch.equals(qtf.getDpidQueueSwitch())) {
+				deregisterQosTrafficFlow(qtf);
+			}
+		}
+		
 		if (!qosTrafficManager.removeQosEnabledSwitches(dpidMeterSwitch, dpidQueueSwitch))
 			return -2;	// Switch are not enabled to support QoS Traffic Prioritization
 		
@@ -697,14 +716,14 @@ public class TrafficPrioritizer implements IFloodlightModule, IOFMessageListener
 				"]");
 		
 		/* BOFUSS (Meter Enabled Switch) */
-        IOFSwitch sw = switchService.getSwitch(qosTrafficFlow.getDpidMeterSwitch()); /* The IOFSwitchService */
+        IOFSwitch sw = switchService.getSwitch(qosTrafficFlow.getDpidMeterSwitch());
         
         removeMeter(sw, qosTrafficFlow.getMeterId());		
 		removeGoToMeterFlow(sw, qosTrafficFlow.getMeterId(), qosTrafficFlow.getSourceAddr(), qosTrafficFlow.getDestAddr());
         removeSetTosFlow(sw, qosTrafficFlow.getSourceAddr(), qosTrafficFlow.getDestAddr());
 
 		/* OvS (Queue Enabled Switch) */
-        sw = switchService.getSwitch(qosTrafficFlow.getDpidQueueSwitch()); /* The IOFSwitchService */
+        sw = switchService.getSwitch(qosTrafficFlow.getDpidQueueSwitch());
 
         // Packets remarked by the meter band with prec_level=1 will have ip_dscp=4, while non remarked packet will have ip_dscp=2
 		removeEnqueueBasedOnDscpFlow(sw, qosTrafficFlow.getSourceAddr(), qosTrafficFlow.getDestAddr(), QOS_SWITCH_LESS_EFFORT_QUEUE, IpDscp.DSCP_4);

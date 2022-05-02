@@ -11,16 +11,17 @@ import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
-import net.floodlightcontroller.linkdiscovery.web.LinkWithType;
-
 @JsonSerialize(using=QosTrafficFlow.class)
+/**
+ * Class that is used to serialize the information of the QoS traffic flows
+ */
 public class QosTrafficFlow extends JsonSerializer<QosTrafficFlow> {
 	
-	/* Pair of switches that implement the QosTrafficFlow */
+	// Pair of switches that implement the QosTrafficFlow
 	private DatapathId dpidMeterSwitch; 
 	private DatapathId dpidQueueSwitch;
 	
-	/* QosTrafficFlow fields */
+	// QosTrafficFlow fields
 	private IPv4Address sourceAddr;
 	private IPv4Address destAddr;
 	private Integer bandwidth;
@@ -28,14 +29,12 @@ public class QosTrafficFlow extends JsonSerializer<QosTrafficFlow> {
 	/* Meter associated to the QosTrafficFlow */
 	private Integer meterId;
 	
+    /*
+     * Do not use this constructor. Used primarily for JSON
+     * Serialization/Deserialization
+     */
 	public QosTrafficFlow() {}
 	
-	/**
-	 * Initialize a flow descriptor
-	 * @param sourceAddr
-	 * @param destAddr
-	 * @param bandwidth
-	 */
 	public QosTrafficFlow(DatapathId dpidMeterSwitch, DatapathId dpidQueueSwitch, IPv4Address sourceAddr, IPv4Address destAddr, Integer bandwidth) {
 		this.dpidMeterSwitch = dpidMeterSwitch;
 		this.dpidQueueSwitch = dpidQueueSwitch;
@@ -76,8 +75,7 @@ public class QosTrafficFlow extends JsonSerializer<QosTrafficFlow> {
 		return  qosflow.getDpidMeterSwitch().equals(this.getDpidMeterSwitch()) ||
 				qosflow.getDpidQueueSwitch().equals(this.getDpidQueueSwitch()) ||
 				qosflow.getSourceAddr().equals(this.getSourceAddr()) || 
-				qosflow.getDestAddr().equals(this.getDestAddr()) ||
-				qosflow.getBandwidth().equals(this.getBandwidth());
+				qosflow.getDestAddr().equals(this.getDestAddr());
 	}
 
 	@Override

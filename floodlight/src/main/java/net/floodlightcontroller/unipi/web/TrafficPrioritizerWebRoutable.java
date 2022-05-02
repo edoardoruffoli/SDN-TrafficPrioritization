@@ -4,22 +4,24 @@ import org.restlet.Context;
 import org.restlet.Restlet;
 import org.restlet.routing.Router;
 
-import net.floodlightcontroller.core.web.ControllerSummaryResource;
-import net.floodlightcontroller.core.web.ControllerSwitchesResource;
-import net.floodlightcontroller.core.web.LoadedModuleLoaderResource;
-import net.floodlightcontroller.linkdiscovery.web.LinksResource;
 import net.floodlightcontroller.restserver.RestletRoutable;
 
+/**
+ * Class that defines the REST interface of the TrafficPrioritizer module.
+ */
 public class TrafficPrioritizerWebRoutable implements RestletRoutable {
+	
 	/**
-	 * Create the Restlet router and bind to the proper resources.
-	 */
+	 * Creates the Restlet router and bind to the proper resources.
+	 * @param context the context for constructing the restlet.
+     * @return        the Restlet router.
+     */
 	@Override
 	public Restlet getRestlet(Context context) {
 		
 		Router router = new Router(context);
 		
-		/* This resource show the topology information related to the Qos service*/
+		// This resource show the topology information related to the Qos service
 		router.attach("/switches/topology", TopologySwitchResource.class);
 		
         /*
@@ -40,17 +42,20 @@ public class TrafficPrioritizerWebRoutable implements RestletRoutable {
          * @DELETE	permits to remove a registered flow.
          * 			@JSON:	"src_addr","dst_addr, "bandwidth"
          */
-		router.attach("/flow/json", QosTrafficFlowResource.class);
+		router.attach("/flows/json", QosTrafficFlowResource.class);
 		
 		// This resource will show the stats of traffic
-		router.attach("/stats/json", QueueResource.class);
+		router.attach("/stats/json", StatsResource.class);
 		
 		return router;
 	}
 
+    /**
+     * Sets the base path for the endpoints of the REST interface
+     * @return  the base path.
+     */
 	@Override
 	public String basePath() {
-		// The root path for the resources
 		return "/qos";
 	}
 }

@@ -1,10 +1,7 @@
 package net.floodlightcontroller.unipi.web;
 
 import java.io.IOException;
-import java.math.BigInteger;
 import java.util.List;
-import java.util.Map;
-
 import org.projectfloodlight.openflow.types.DatapathId;
 import org.restlet.data.Status;
 import org.restlet.resource.Delete;
@@ -15,11 +12,12 @@ import org.restlet.resource.ServerResource;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import javafx.util.Pair;
-
+/**
+ * Class that manages the resource "/switches/json"
+ */
 public class SwitchResource extends ServerResource {
 	/**
-	 * Retrieves the switches that are Qos enabled 
+	 * Retrieves the switches that have been enabled to support traffic prioritization
 	 * @return  the list of switches.
 	 */
 	@Get("json")
@@ -30,7 +28,7 @@ public class SwitchResource extends ServerResource {
     }
 	
 	/**
-	 * Adds a pair of switches to the list of switches implementing the Qos service.
+	 * Adds a pair of switches to the list of switches implementing the Qos traffic prioritization service.
 	 * @param fmJson  the JSON message.
 	 * @return        a string carrying information about the success of the operation.
 	 */
@@ -83,7 +81,7 @@ public class SwitchResource extends ServerResource {
 	}
 
 	/**
-	 * Removes a pair of switches from the list of switches implementing the Qos service.
+	 * Removes a pair of switches from the list of switches implementing the Qos traffic prioritization service..
 	 * @param fmJson  the JSON message.
 	 * @return        a string carrying information about the success of the operation.
 	 */

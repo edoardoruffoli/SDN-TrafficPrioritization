@@ -7,17 +7,19 @@ import java.util.Map;
 
 import org.projectfloodlight.openflow.types.DatapathId;
 import org.restlet.data.Status;
-import org.restlet.resource.Get;
 import org.restlet.resource.Post;
 import org.restlet.resource.ServerResource;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-public class QueueResource extends ServerResource{
+/**
+ * Class that manages the resource "/stats/json"
+ */
+public class StatsResource extends ServerResource{
 	/**
-	 * Retrieves the queue statistics
-	 * @return  the list of flows.
+	 * Retrieves the QoS class statistics
+	 * @return  the number of packets handled by each class
 	 */
 	@Post("json")
     public Map<String, BigInteger> showStats(String fmJson) {

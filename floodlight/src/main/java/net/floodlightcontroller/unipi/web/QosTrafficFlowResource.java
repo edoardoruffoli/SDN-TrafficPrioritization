@@ -1,9 +1,6 @@
 package net.floodlightcontroller.unipi.web;
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-
 import org.projectfloodlight.openflow.types.DatapathId;
 import org.projectfloodlight.openflow.types.IPv4Address;
 import org.restlet.data.Status;
@@ -19,7 +16,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import net.floodlightcontroller.unipi.QosTrafficFlow;
 
-
+/**
+ * Class that manages the resource "/flows/json"
+ */
 public class QosTrafficFlowResource extends ServerResource {
 	protected static Logger log = LoggerFactory.getLogger(QosTrafficFlowResource.class);
 	
@@ -35,6 +34,11 @@ public class QosTrafficFlowResource extends ServerResource {
     	return (List<QosTrafficFlow>) tp.getQosTrafficFlows();
     }
 	
+	/**
+	 * Registers a QoS Traffic Flow
+	 * @param fmJson	the JSON message
+	 * @return			a message carrying information about the success of the operation
+	 */
 	@Post("json")
 	public String register(String fmJson) {
 
@@ -51,8 +55,8 @@ public class QosTrafficFlowResource extends ServerResource {
 
 			JsonNode dpidMeterSwitchNode = root.get("dpid-meter-switch");
 			JsonNode dpidQueueSwitchNode = root.get("dpid-queue-switch");
-			JsonNode sourceAddrNode = root.get("src_addr");
-			JsonNode destAddrNode = root.get("dst_addr");
+			JsonNode sourceAddrNode = root.get("src-addr");
+			JsonNode destAddrNode = root.get("dst-addr");
 			JsonNode bandwidthNode = root.get("bandwidth");
 			
 			if (dpidMeterSwitchNode == null || dpidQueueSwitchNode == null) {
@@ -95,6 +99,11 @@ public class QosTrafficFlowResource extends ServerResource {
 		}
 	}
 	
+	/**
+	 * De-registers a QoS Traffic Flow
+	 * @param fmJson	the JSON message
+	 * @return			a message carrying information about the success of the operation
+	 */
 	@Delete("json")
 	public String deregister(String fmJson) {
 		// Check if the payload is provided
