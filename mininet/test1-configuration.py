@@ -18,8 +18,27 @@ print(requests.post(url_switches, data=json.dumps(
 print(requests.post(url_flows, data=json.dumps(
 	{"dpid-meter-switch": "00:00:00:00:00:00:00:06", 
 	 "dpid-queue-switch": "00:00:00:00:00:00:00:07",
-	 "src-addr": "10.0.0.1",
+	 "src-addr": "10.0.0.2",
 	 "dst-addr": "10.0.0.5",
-	 "bandwidth": "10000"}
+	 "bandwidth": "80000"}
 	), headers=header))
+
+print(requests.post(url_flows, data=json.dumps(
+	{"dpid-meter-switch": "00:00:00:00:00:00:00:06", 
+	 "dpid-queue-switch": "00:00:00:00:00:00:00:07",
+	 "src-addr": "10.0.0.3",
+	 "dst-addr": "10.0.0.5",
+	 "bandwidth": "50000"}
+	), headers=header))
+
+print(requests.post(url_flows, data=json.dumps(
+	{"dpid-meter-switch": "00:00:00:00:00:00:00:06", 
+	 "dpid-queue-switch": "00:00:00:00:00:00:00:07",
+	 "src-addr": "10.0.0.4",
+	 "dst-addr": "10.0.0.5",
+	 "bandwidth": "30000"}
+	), headers=header))
+
+
+
 

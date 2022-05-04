@@ -72,9 +72,9 @@ public class QosTrafficFlow extends JsonSerializer<QosTrafficFlow> {
 	}
 	
 	public boolean equals(QosTrafficFlow qosflow) {
-		return  qosflow.getDpidMeterSwitch().equals(this.getDpidMeterSwitch()) ||
-				qosflow.getDpidQueueSwitch().equals(this.getDpidQueueSwitch()) ||
-				qosflow.getSourceAddr().equals(this.getSourceAddr()) || 
+		return  qosflow.getDpidMeterSwitch().equals(this.getDpidMeterSwitch()) &&
+				qosflow.getDpidQueueSwitch().equals(this.getDpidQueueSwitch()) &&
+				qosflow.getSourceAddr().equals(this.getSourceAddr()) && 
 				qosflow.getDestAddr().equals(this.getDestAddr());
 	}
 
