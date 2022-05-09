@@ -5,16 +5,17 @@
 from __future__ import print_function
 
 import os
+import sys
 import time
 from mininet.topo import Topo
 from mininet.net import Mininet
 from mininet.node import Node, UserSwitch
 from mininet.log import setLogLevel, info
-from mininet.node import CPULimitedHost
 from mininet.link import TCLink
 from mininet.cli import CLI
-from mininet.link import Intf
 from mininet.node import RemoteController, Host, OVSSwitch
+
+import test1
 
 # sh ovs-ofctl queue-get-config s2 -O OpenFlow13		Get Queue List
 # sh ovs-ofctl dump-flows s2 -O OpenFlow13			Get Flows
@@ -22,7 +23,7 @@ from mininet.node import RemoteController, Host, OVSSwitch
 # sh ovs-vsctl list queue
 
 
-def topology():
+def topology(test):
         
 	net = Mininet(ipBase="10.0.0.0/8", link=TCLink)
         info("*** Adding controller\n")
@@ -50,7 +51,7 @@ def topology():
         net.addLink(h4, s1)
 
 	net.addLink(s1, s2)
-        net.addLink(s2, s3) #, cls=TCLink, bw=10) #https://github.com/faucetsdn/ryu/issues/147
+        net.addLink(s2, s3)
         net.addLink(s3, h5)
 
         info("*** Starting network\n")
@@ -63,7 +64,9 @@ def topology():
 
         # Queues	
         info("*** Creating queues\n")
-	time.sleep(1)			# wait for the switches to start
+
+	# wait for the switches to start
+	time.sleep(1)		
 
 	for s in s2, s3:
 
@@ -78,17 +81,22 @@ def topology():
 		    s.cmd('ovs-vsctl set Port %s qos=%s' % (link.intf1.name, qos_id))
 		    s.cmd('ovs-vsctl set Port %s qos=%s' % (link.intf2.name, qos_id))
 
-	# Iperf BUG
-	# Bad TCP SYN packets generated on veth interfaces in Ubuntu 16.04
+	# Iperf mininet BUG: Bad TCP SYN packets generated on veth interfaces in Ubuntu 16.04
 	# https://github.com/mininet/mininet/issues/653
-	for h in h1, h2, h3, h4, h5:
-		#h.cmd( 'ethtool -K', h.defaultIntf(), 'tx', tx, 'rx', rx )
+	for h in h1, h2, h3, h4, h5:)
 		h.cmd( 'ethtool -K', h.defaultIntf(), 'tx off' )
-	
-	CLI( net )
 
+	# Run specified test
+	if test == 1:
+		test1.run_test(net)
+
+	CLI(net)	
 	net.stop()
 
 if __name__ == '__main__':
-    setLogLevel( 'info' )
-    topology()
+    	setLogLevel( 'info' )
+	test = 0
+	if len(sys.argv) > 1:
+		test = int(sys.argv[1])
+
+    	topology(test)
