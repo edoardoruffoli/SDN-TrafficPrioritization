@@ -1,4 +1,4 @@
-package net.floodlightcontroller.unipi;
+package net.floodlightcontroller.trafficprioritization;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -63,8 +63,8 @@ import net.floodlightcontroller.linkdiscovery.Link;
 import net.floodlightcontroller.packet.Ethernet;
 import net.floodlightcontroller.packet.IPacket;
 import net.floodlightcontroller.restserver.IRestApiService;
-import net.floodlightcontroller.unipi.web.ITrafficPrioritizerREST;
-import net.floodlightcontroller.unipi.web.TrafficPrioritizerWebRoutable;
+import net.floodlightcontroller.trafficprioritization.web.ITrafficPrioritizerREST;
+import net.floodlightcontroller.trafficprioritization.web.TrafficPrioritizerWebRoutable;
 
 /*
  * Class that implements the TrafficPrioritizer module exposed by the controller

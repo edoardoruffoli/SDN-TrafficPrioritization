@@ -1,4 +1,4 @@
-package net.floodlightcontroller.unipi.web;
+package net.floodlightcontroller.trafficprioritization.web;
 import java.io.IOException;
 import java.util.List;
 import org.projectfloodlight.openflow.types.DatapathId;
@@ -14,7 +14,7 @@ import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import net.floodlightcontroller.unipi.QosTrafficFlow;
+import net.floodlightcontroller.trafficprioritization.QosTrafficFlow;
 
 /**
  * Class that manages the resource "/flows/json"

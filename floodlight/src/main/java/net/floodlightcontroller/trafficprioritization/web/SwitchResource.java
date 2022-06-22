@@ -1,4 +1,4 @@
-package net.floodlightcontroller.unipi.web;
+package net.floodlightcontroller.trafficprioritization.web;
 
 import java.io.IOException;
 import java.util.List;

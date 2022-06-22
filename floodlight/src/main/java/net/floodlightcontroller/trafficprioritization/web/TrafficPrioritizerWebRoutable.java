@@ -1,4 +1,4 @@
-package net.floodlightcontroller.unipi.web;
+package net.floodlightcontroller.trafficprioritization.web;
 
 import org.restlet.Context;
 import org.restlet.Restlet;

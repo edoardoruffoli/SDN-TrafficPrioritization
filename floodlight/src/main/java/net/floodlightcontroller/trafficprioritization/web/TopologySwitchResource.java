@@ -1,11 +1,11 @@
-package net.floodlightcontroller.unipi.web;
+package net.floodlightcontroller.trafficprioritization.web;
 
 import java.util.Map;
 import org.projectfloodlight.openflow.types.DatapathId;
 import org.restlet.resource.Get;
 import org.restlet.resource.ServerResource;
 
-import net.floodlightcontroller.unipi.SwitchQosDesc;
+import net.floodlightcontroller.trafficprioritization.SwitchQosDesc;
 
 /**
  * Class that manages the resource "/switches/topology/json"

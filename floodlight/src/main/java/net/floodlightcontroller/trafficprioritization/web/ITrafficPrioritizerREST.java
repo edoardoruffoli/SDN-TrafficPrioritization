@@ -1,4 +1,4 @@
-package net.floodlightcontroller.unipi.web;
+package net.floodlightcontroller.trafficprioritization.web;
 
 import java.math.BigInteger;
 import java.util.List;
@@ -6,8 +6,8 @@ import java.util.Map;
 import org.projectfloodlight.openflow.types.DatapathId;
 
 import net.floodlightcontroller.core.module.IFloodlightService;
-import net.floodlightcontroller.unipi.QosTrafficFlow;
-import net.floodlightcontroller.unipi.SwitchQosDesc;
+import net.floodlightcontroller.trafficprioritization.QosTrafficFlow;
+import net.floodlightcontroller.trafficprioritization.SwitchQosDesc;
 
 /**
  * Service interface for the Traffic Prioritizer module.
