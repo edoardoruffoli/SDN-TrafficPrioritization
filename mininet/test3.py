@@ -63,55 +63,31 @@ def run_test(net):
 
 	# Iperf tests
 	info("*** Starting Test\n")
-	popens = {}
 	endTime = time.time() + 35
 
 	info("*** Started iperf server on h5\n")
-	popens[ h5.name ] = h5.popen("iperf -s -i 1")
+	h5.cmd("xterm -T h5 -l -lf output/test1.txt -hold -e iperf -s -i 1 &")
 	time.sleep(3)
 
 	info("*** Started iperf client on h1\n")
-	popens[ h1.name ] = h1.popen("iperf -c 10.0.0.5 -p 5001 -b 2M -t 30")
+	h1.cmd("xterm -T h1 -hold -e iperf -c 10.0.0.5 -p 5001 -b 2M -t 30 &")
 	time.sleep(5)
 
 	info("*** Started iperf client on h2\n")
-	popens[ h2.name ] = h2.popen("iperf -c 10.0.0.5 -p 5001 -b 8M -t 25")	
+	h2.cmd("xterm -T h2 -hold -e iperf -c 10.0.0.5 -p 5001 -b 8M -t 25 &")
 	time.sleep(5)
 
 	info("*** Started iperf client on h3\n")
-	popens[ h3.name ] = h3.popen("iperf -c 10.0.0.5 -p 5001 -b 5M -t 20")
+	h3.cmd("xterm -T h3 -hold -e iperf -c 10.0.0.5 -p 5001 -b 5M -t 20 &")
 	time.sleep(10)
 
 	info("*** Started iperf client on h4\n")
-	popens[ h4.name ] = h4.popen("iperf -c 10.0.0.5 -p 5001 -b 2M -t 5")	
+	h3.cmd("xterm -T h4 -hold -e iperf -c 10.0.0.5 -p 5001 -b 2M -t 5 &")
 	time.sleep(5)
 	
-	info("*** Restarted iperf client on h4\n")
+	#info("*** Restarted iperf client on h4\n")
 	#popens[h4.name + "b" ] = h4.popen("iperf -c 10.0.0.5 -p 5001 -b 2M -t 10", shell=False)	
 	#time.sleep(10)
 
-
-	output = {}
-	for host, line in pmonitor( popens ):
-		if host:
-			output.setdefault(host,[]).append('<%s>: %s' % (host, line))
-
-		if time.time() >= endTime:
-			break
-	
-	# Kill iperf processes
-	for p in popens.values():
-		p.send_signal(SIGINT)
-
-	# Write on file the results
-	for key in output:
-		filename = 'results/output_%s.txt' % key[1:]
-		f = open(filename, 'w')
-		for elem in output[key]:	
-			f.write(elem)
-		f.close()
-
 if __name__ == '__main__':
 	configure_test()
-
-
