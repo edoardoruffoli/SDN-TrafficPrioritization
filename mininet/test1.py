@@ -45,25 +45,28 @@ def run_test(net):
 	configure_test()
 
 	# Remove previous test results
-	if os.path.exists("output/test1_h2.txt"):
-		os.remove("output/test1_h2.txt")
+	if os.path.exists("output/test1/h1.txt"):
+		os.remove("output/test1/h1.txt")
 
-	if os.path.exists("output/test1_h5.txt"):
-		os.remove("output/test1_h5.txt")
+	if os.path.exists("output/test1/h2.txt"):
+		os.remove("output/test1/h2.txt")
+
+	if os.path.exists("output/test1/h5.txt"):
+		os.remove("output/test1/h5.txt")
 
 	# Start iperf test
 	info("*** Starting Test 1\n")
 
 	info("*** Started iperf server on h5\n")
-	h5.cmd("xterm -T h5 -l -lf output/test1_h5.txt -hold -e iperf -s -i 1 &")
+	h5.cmd("xterm -T h5 -l -lf output/test1/h5.txt -hold -e iperf -s -i 1 &")
 	time.sleep(5)
 
 	info("*** Started iperf client on h1 to saturate link\n")
-	h1.cmd("xterm -T h1 -hold -e iperf -c 10.0.0.5 -p 5001 -b 10M -t 15 &")
+	h1.cmd("xterm -T h1 -l -lf output/test1/h1.txt -hold -e iperf -c 10.0.0.5 -p 5001 -b 10M -i 5 -t 15 &")
 	time.sleep(5)
 
 	info("*** Started iperf client on h2\n")
-	h2.cmd("xterm -T h2 -l -lf output/test1_h2.txt -hold -e iperf -c 10.0.0.5 -p 5001 -b 7M -t 5 &")
+	h2.cmd("xterm -T h2 -l -lf output/test1/h2.txt -hold -e iperf -c 10.0.0.5 -p 5001 -b 7M -i 5 -t 5 &")
 
 if __name__ == '__main__':
 	configure_test()
