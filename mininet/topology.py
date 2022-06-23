@@ -5,25 +5,30 @@
 from __future__ import print_function
 
 import os
+import sys
 import time
 from mininet.topo import Topo
 from mininet.net import Mininet
 from mininet.node import Node, UserSwitch
 from mininet.log import setLogLevel, info
-from mininet.node import CPULimitedHost
 from mininet.link import TCLink
 from mininet.cli import CLI
-from mininet.link import Intf
-from mininet.node import RemoteController, Host, OVSKernelSwitch
+from mininet.node import RemoteController, Host, OVSSwitch
+
+import test0
+import test1
+import test2
+import test3
 
 # sh ovs-ofctl queue-get-config s2 -O OpenFlow13		Get Queue List
 # sh ovs-ofctl dump-flows s2 -O OpenFlow13			Get Flows
 # sh ovs-ofctl queue-stats s2 -O OpenFlow13
+# sh ovs-vsctl list queue
 
 
-def topology():
+def topology(test):
         
-	net = Mininet( ipBase="10.0.0.0/8")
+	net = Mininet(ipBase="10.0.0.0/8", link=TCLink)
         info("*** Adding controller\n")
         c1 = net.addController(name="c1", controller=RemoteController,
                            protocol="tcp",
@@ -32,8 +37,8 @@ def topology():
 
         info("*** Adding switches\n")
         s1 = net.addSwitch("s1", cls=UserSwitch, dpid="00:00:00:00:00:06", dpopts='')		
-        s2 = net.addSwitch("s2", cls=OVSKernelSwitch, dpid="00:00:00:00:00:00:00:07", protocols="OpenFlow13")
-        s3 = net.addSwitch("s3", cls=OVSKernelSwitch, dpid="00:00:00:00:00:00:00:08", protocols="OpenFlow13")
+        s2 = net.addSwitch("s2", cls=OVSSwitch, dpid="00:00:00:00:00:00:00:07", protocols="OpenFlow13")
+        s3 = net.addSwitch("s3", cls=OVSSwitch, dpid="00:00:00:00:00:00:00:08", protocols="OpenFlow13")
    
         info("*** Adding hosts\n")
         h1 = net.addHost("h1", cls=Host, ip="10.0.0.1", mac="00:00:00:00:00:01", defaultRoute="h1-eth0")
@@ -49,38 +54,58 @@ def topology():
         net.addLink(h4, s1)
 
 	net.addLink(s1, s2)
-        net.addLink(s2, s3) #, cls=TCLink, bw=10) #https://github.com/faucetsdn/ryu/issues/147
+        net.addLink(s2, s3)
         net.addLink(s3, h5)
 
         info("*** Starting network\n")
         net.build()
-        c1.start()
-        s1.start([c1])
-        s2.start([c1])
-	s3.start([c1])
+#       c1.start()
+#       s1.start([c1])
+#       s2.start([c1])
+#	s3.start([c1])
+	net.start()
 
         # Queues	
         info("*** Creating queues\n")
-	time.sleep(1)			# wait for the switches to start
 
-	s2.cmd('ovs-vsctl --all destroy Qos')
-	s2.cmd('ovs-vsctl --all destroy Queue')
+	# wait for the switches to start
+	time.sleep(1)		
 
-	s2.cmd('ovs-vsctl set port s2-eth2 qos=@newqos -- --id=@newqos create qos type=linux-htb queues:0=@q0, queues:1=@q1, queues:2=@q2 -- --id=@q0, create queue other-config:priority=0 -- --id=@q1, create queue other-config:priority=1 -- --id=@q2 create queue other-config:priority=2')
+	for s in s2, s3:
 
-        #net.plotGraph(max_x=100, max_y=100)
+		# Clean Up
+		s.cmd('ovs-vsctl --all destroy Qos')
+		s.cmd('ovs-vsctl --all destroy Queue')
 
-	# Iperf BUG
-	# Bad TCP SYN packets generated on veth interfaces in Ubuntu 16.04
+		qos_id = s.cmd('ovs-vsctl create qos type=linux-htb other-config:max-rate=10000000 queues=0=@be,1=@le,2=@hi -- --id=@be create queue other-config:priority=1 -- --id=@le create queue other-config:priority=10 -- --id=@hi create queue other-config:priority=0').splitlines()[0]
+
+		for link in net.links:
+		    print("link: {} <-> {}".format(link.intf1.name, link.intf2.name))
+		    s.cmd('ovs-vsctl set Port %s qos=%s' % (link.intf1.name, qos_id))
+		    s.cmd('ovs-vsctl set Port %s qos=%s' % (link.intf2.name, qos_id))
+
+	# Iperf mininet BUG: Bad TCP SYN packets generated on veth interfaces in Ubuntu 16.04
 	# https://github.com/mininet/mininet/issues/653
-	for h in (h1, h2, h3, h4, h5):
-		#h.cmd( 'ethtool -K', h.defaultIntf(), 'tx', tx, 'rx', rx )
+	for h in h1, h2, h3, h4, h5:
 		h.cmd( 'ethtool -K', h.defaultIntf(), 'tx off' )
 
-	CLI( net )
+	# Run specified test
+	if test == 0:
+		test0.run_test(net)
+	elif test == 1:
+		test1.run_test(net)
+	elif test == 2:
+		test2.run_test(net)
+	elif test == 3:
+		test3.run_test(net)
 
+	CLI(net)	
 	net.stop()
 
 if __name__ == '__main__':
-    setLogLevel( 'info' )
-    topology()
+    	setLogLevel( 'info' )
+	test = 0
+	if len(sys.argv) > 1:
+		test = int(sys.argv[1])
+
+    	topology(test)
