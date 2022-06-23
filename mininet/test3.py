@@ -1,3 +1,4 @@
+import os
 import requests
 import json
 import time
@@ -62,11 +63,12 @@ def run_test(net):
 	configure_test()
 
 	# Iperf tests
+	os.remove("output/test3.txt")
+
 	info("*** Starting Test\n")
-	endTime = time.time() + 35
 
 	info("*** Started iperf server on h5\n")
-	h5.cmd("xterm -T h5 -l -lf output/test1.txt -hold -e iperf -s -i 1 &")
+	h5.cmd("xterm -T h5 -l -lf output/test3.txt -hold -e iperf -s -i 1 &")
 	time.sleep(3)
 
 	info("*** Started iperf client on h1\n")
@@ -91,3 +93,5 @@ def run_test(net):
 
 if __name__ == '__main__':
 	configure_test()
+
+

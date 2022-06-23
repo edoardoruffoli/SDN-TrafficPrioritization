@@ -89,6 +89,8 @@ def topology(test):
 	for h in h1, h2, h3, h4, h5:
 		h.cmd( 'ethtool -K', h.defaultIntf(), 'tx off' )
 
+	net.pingAll()
+
 	# Run specified test
 	if test == 0:
 		test0.run_test(net)

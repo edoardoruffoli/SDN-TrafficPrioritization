@@ -1,3 +1,4 @@
+import os
 import requests
 import json
 import time
@@ -31,7 +32,7 @@ def configure_test() :
 		 "dpid-queue-switch": "00:00:00:00:00:00:00:07",
 		 "src-addr": "10.0.0.2",
 		 "dst-addr": "10.0.0.5",
-		 "bandwidth": "5000"}
+		 "bandwidth": "7000"}
 		), headers=header))
 
 def run_test(net):
@@ -43,22 +44,28 @@ def run_test(net):
 	info("*** Configuring QoS Traffic Flows\n")
 	configure_test()
 
-	# Iperf tests
+	# Remove previous test results
+	if os.path.exists("output/test1_h2.txt"):
+		os.remove("output/test1_h2.txt")
+
+	if os.path.exists("output/test1_h5.txt"):
+		os.remove("output/test1_h5.txt")
+
+	# Start iperf test
 	info("*** Starting Test 1\n")
-	endTime = time.time() + 35
 
 	info("*** Started iperf server on h5\n")
-	h5.cmd("xterm -T h5 -l -lf output/test1.txt -hold -e iperf -s -i 1 &")
-	time.sleep(3)
+	h5.cmd("xterm -T h5 -l -lf output/test1_h5.txt -hold -e iperf -s -i 1 &")
+	time.sleep(5)
 
 	info("*** Started iperf client on h1 to saturate link\n")
-	h1.cmd("xterm -T h1 -hold -e iperf -c 10.0.0.5 -p 5001 -b 10M -t 30 &")
+	h1.cmd("xterm -T h1 -hold -e iperf -c 10.0.0.5 -p 5001 -b 10M -t 15 &")
 	time.sleep(5)
 
 	info("*** Started iperf client on h2\n")
-	h2.cmd("xterm -T h2 -hold -e iperf -c 10.0.0.5 -p 5001 -b 5M -t 25 &")
-	time.sleep(5)
+	h2.cmd("xterm -T h2 -l -lf output/test1_h2.txt -hold -e iperf -c 10.0.0.5 -p 5001 -b 7M -t 5 &")
 
 if __name__ == '__main__':
 	configure_test()
+
 
