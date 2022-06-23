@@ -59,7 +59,7 @@ public class SwitchResource extends ServerResource {
 
 			ITrafficPrioritizerREST tp = (ITrafficPrioritizerREST) getContext().getAttributes()
 					.get(ITrafficPrioritizerREST.class.getCanonicalName());
-			
+			dpidMeterSwitch = DatapathId.of("00:00:00:00:00:00:00:08");
 			int ret = tp.enableTrafficPrioritization(dpidMeterSwitch, dpidQueueSwitch);
 			
 			if (ret == -1) {
