@@ -5,11 +5,11 @@ Systems @University of Pisa.
 
 ## Objective
 The objective of this project is to design and develop a Floodlight module that implements a traffic prioritization behaviour inside a network domain. The network should manage traffic flows according to the scenario "A. Traffic Prioritization" of paper [1]. 
-Checkout the [description](assignment.pdf) for more information about the project.
+Checkout the [assignmenet](assignment.pdf) and the [report](report.pdf) for all the information about the project.
 
 ## Repository structure
  - `floodlight` contains the code of the traffic prioritization floodlight module.
- - `mininet` contains the code to create an emulated network with mininet to test all the functionalities of the module. 
+ - `mininet` contains the code to create an emulated network to test all the functionalities of the module. 
  - `docs` contains the assignement and the report of the project.
  
 ## Setup instructions
@@ -56,5 +56,5 @@ with OpenFlow," 2016 Symposium on Communications and Vehicular Technologies (SCV
 2016, pp. 1-6, doi: 10.1109/SCVT.2016.7797664.
  
  ## Authors
- - Gianluca Cometa [@gianlucacometa](https://github.com/gianlucacometa))
+ - Gianluca Cometa [@gianlucacometa](https://github.com/gianlucacometa)
  - Edoardo Ruffoli [@edoardoruffoli](https://github.com/edoardoruffoli)
