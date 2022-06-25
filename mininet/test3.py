@@ -85,27 +85,27 @@ def run_test(net):
 	info("*** Starting Test\n")
 
 	info("*** Started iperf server on h5\n")
-	h5.cmd("xterm -T h5 -l -lf output/test3/h5.txt -hold -e iperf -s -i 1 &")
+	h5.cmd("xterm -T h5 -l -lf output/test3/h5.txt -hold -e iperf -s -u -i 1 &")
 	time.sleep(5)
 
 	info("*** Started iperf client on h1\n")
-	h1.cmd("xterm -T h1 -l -lf output/test3/h1.txt -hold -e iperf -c 10.0.0.5 -p 5001 -b 2M -i 5 -t 30 &")
+	h1.cmd("xterm -T h1 -l -lf output/test3/h1.txt -hold -e iperf -c 10.0.0.5 -p 5001 -u -b 2M -i 5 -t 30 &")
 	time.sleep(5)
 
 	info("*** Started iperf client on h2\n")
-	h2.cmd("xterm -T h2 -l -lf output/test3/h2.txt -hold -e iperf -c 10.0.0.5 -p 5001 -b 8M -i 5 -t 25 &")
+	h2.cmd("xterm -T h2 -l -lf output/test3/h2.txt -hold -e iperf -c 10.0.0.5 -p 5001 -u -b 8M -i 5 -t 25 &")
 	time.sleep(5)
 
 	info("*** Started iperf client on h3\n")
-	h3.cmd("xterm -T h3 -l -lf output/test3/h3.txt -hold -e iperf -c 10.0.0.5 -p 5001 -b 5M -i 5 -t 20 &")
+	h3.cmd("xterm -T h3 -l -lf output/test3/h3.txt -hold -e iperf -c 10.0.0.5 -p 5001 -u -b 5M -i 5 -t 20 &")
 	time.sleep(5)
 
 	info("*** Started iperf client on h4\n")
-	h4.cmd("xterm -T h4_a -l -lf output/test3/h4_a.txt -hold -e iperf -c 10.0.0.5 -p 5001 -b 2M -i 5 -t 10 &")
+	h4.cmd("xterm -T h4_a -l -lf output/test3/h4_a.txt -hold -e iperf -c 10.0.0.5 -p 5001 -u -b 2M -i 5 -t 10 &")
 	time.sleep(10)
 	
 	info("*** Restarted iperf client on h4\n")
-	h4.cmd("xterm -T h4_b -l -lf output/test3/h4_b.txt -hold -e iperf -c 10.0.0.5 -p 5001 -b 3.5M -i 5 -t 5 &")
+	h4.cmd("xterm -T h4_b -l -lf output/test3/h4_b.txt -hold -e iperf -c 10.0.0.5 -p 5001 -u -b 3.5M -i 5 -t 5 &")
 
 
 if __name__ == '__main__':

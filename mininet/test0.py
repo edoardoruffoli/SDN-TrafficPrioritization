@@ -47,17 +47,17 @@ def run_test(net):
 	info("*** Starting Test 0\n")
 
 	info("*** Started iperf server on h5\n")
-	h5.cmd("xterm -T h5 -hold -e iperf -s -i 1 &")
+	h5.cmd("xterm -T h5 -hold -e iperf -s -u -i 1 &")
 
 	info("*** Launching wireshark to inspect packets on s2 s2-eth1\n")
 	info("*** Use as packet filter: ip.src == 10.0.0.1 && ip.dsfield == 0x10 \n")
 	info("*** Use as packet filter: ip.src == 10.0.0.1 && ip.dsfield == 0x08 \n")
-	s2.cmd("xterm -hold -e wireshark")	
+	s2.cmd("xterm -hold -e wireshark &")	
 
 	time.sleep(3)
 
 	info("*** Started iperf client on h1\n")
-	h1.cmd("xterm -T h1 -hold -e iperf -c 10.0.0.5 -p 5001 -b 5M -t 30 &")
+	h1.cmd("xterm -T h1 -hold -e iperf -c 10.0.0.5 -p 5001 -u -b 5M -t 30 &")
 	
 
 if __name__ == '__main__':
