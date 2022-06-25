@@ -15,8 +15,7 @@ Checkout the [description](assignment.pdf) for more information about the projec
 ## Setup instructions
 
 ### Floodlight
-1. Merge the contents of the `floodlight` folder in the root of the repository 
-with your floodlight folder in your system.
+1. Add the traffic prioritization module to the floodlight in your system.
 ```
 $ rsync -av $REPO_ROOT/floodlight/ $FLOODLIGHT_ROOT/
 ```
