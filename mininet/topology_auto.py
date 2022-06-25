@@ -7,6 +7,12 @@ from __future__ import print_function
 import os
 import sys
 import time
+import sys
+
+from consolemenu import *
+from consolemenu.items import *
+from consolemenu.prompt_utils import PromptUtils
+
 from mininet.topo import Topo
 from mininet.net import Mininet
 from mininet.node import Node, UserSwitch
@@ -24,6 +30,29 @@ import test3
 # sh ovs-ofctl dump-flows s2 -O OpenFlow13			Get Flows
 # sh ovs-ofctl queue-stats s2 -O OpenFlow13
 # sh ovs-vsctl list queue
+
+def action(test):
+    print("##### SIMULATION Now Starting ######: ", test)
+    topology(test)
+    PromptUtils(Screen()).enter_to_continue()
+    
+def main():
+    # Create the root menu
+    menu = ConsoleMenu("SDN-based traffic prioritization", "Here you can run some simulations")
+
+     # Add all the items to the root menu
+    menu.append_item(FunctionItem("Test 0: DSCP Remark", action, args=[0]))
+    menu.append_item(FunctionItem("Test 1: QoS guarantees", action, args=[1]))
+    menu.append_item(FunctionItem("Test 2: Traffic Prioritization", action, args=[2]))
+    menu.append_item(FunctionItem("Test 3: Comprehensive tests", action, args=[3]))
+
+    # Create a menu item that calls a function
+    #function_item = FunctionItem("Fun item", input_handler)
+    #test1_item = FunctionItem("Test1 : QoS Guarantees", topology(test=0))
+
+    # Show the menu
+    menu.start()
+    menu.join()
 
 
 def topology(test):
@@ -90,7 +119,7 @@ def topology(test):
 		h.cmd( 'ethtool -K', h.defaultIntf(), 'tx off' )
 
 	net.pingAll()
-
+	print("TEST: ", test)
 	# Run specified test
 	if test == 0:
 		test0.run_test(net)
@@ -106,8 +135,9 @@ def topology(test):
 
 if __name__ == '__main__':
     	setLogLevel( 'info' )
-	test = 0
-	if len(sys.argv) > 1:
-		test = int(sys.argv[1])
+    	main()
+#	test = 0
+#	if len(sys.argv) > 1:
+#		test = int(sys.argv[1])
 
-    	topology(test)
+#    	topology(test)
