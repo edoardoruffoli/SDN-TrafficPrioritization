@@ -135,9 +135,9 @@ def topology(test):
 
 if __name__ == '__main__':
     	setLogLevel( 'info' )
-#    	main()
-	test = 1
+    	main()
+#	test = 1
 #	if len(sys.argv) > 1:
 #		test = int(sys.argv[1])
 
-    	topology(test)
+#    	topology(test)
