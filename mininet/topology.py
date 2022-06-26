@@ -41,10 +41,11 @@ def main():
     menu = ConsoleMenu("SDN-based traffic prioritization", "Here you can run some simulations")
 
      # Add all the items to the root menu
-    menu.append_item(FunctionItem("Test 0: DSCP Remark", action, args=[0]))
-    menu.append_item(FunctionItem("Test 1: QoS guarantees", action, args=[1]))
-    menu.append_item(FunctionItem("Test 2: Traffic Prioritization", action, args=[2]))
-    menu.append_item(FunctionItem("Test 3: Comprehensive tests", action, args=[3]))
+    menu.append_item(FunctionItem("Test A: DSCP Remark", action, args=[0]))
+    menu.append_item(FunctionItem("Test B: QoS guarantees", action, args=[1]))
+    menu.append_item(FunctionItem("Test C: Traffic Prioritization", action, args=[2]))
+    menu.append_item(FunctionItem("Test D: Comprehensive tests", action, args=[3]))
+    menu.append_item(CommandItem("Clear Mininet Configuration", "sudo mn -c"))
 
     # Create a menu item that calls a function
     #function_item = FunctionItem("Fun item", input_handler)
@@ -116,7 +117,7 @@ def topology(test):
 	# Iperf mininet BUG: Bad TCP SYN packets generated on veth interfaces in Ubuntu 16.04
 	# https://github.com/mininet/mininet/issues/653
 	for h in h1, h2, h3, h4, h5:
-		h.cmd( 'ethtool -K', h.defaultIntf(), 'tx off' )
+		h.cmd( 'ethtool -K', h.defaultIntf(), 'tx off' , 'rx off' )
 
 	net.pingAll()
 	print("TEST: ", test)
