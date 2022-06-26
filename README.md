@@ -38,11 +38,11 @@ $ python topology.py
   │  Here you can run some simulations                                      │
   │                                                                         │
   │                                                                         │
-  │    1 - Test 0: DSCP Remark                                              │
-  │    2 - Test 1: QoS guarantees                                           │
-  │    3 - Test 2: Traffic Prioritization                                   │
-  │    4 - Test 3: Comprehensive tests                                      │
-  │    5 - No Test                                                          │
+  │    1 - Test A: DSCP Remark                                              │
+  │    2 - Test B: QoS guarantees                                           │
+  │    3 - Test C: Traffic Prioritization                                   │
+  │    4 - Test D: Comprehensive tests                                      │
+  │    5 - Clear Mininet Configuration                                      │
   │    6 - Exit                                                             │
   │                                                                         │
   │                                                                         │
