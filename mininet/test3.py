@@ -32,7 +32,7 @@ def configure_test() :
 		 "dpid-queue-switch": "00:00:00:00:00:00:00:07",
 		 "src-addr": "10.0.0.2",
 		 "dst-addr": "10.0.0.5",
-		 "bandwidth": "3500"}
+		 "bandwidth": "3000"}
 		), headers=header))
 
 	print(requests.post(url_flows, data=json.dumps(
@@ -89,7 +89,7 @@ def run_test(net):
 	time.sleep(5)
 
 	info("*** Started iperf client on h1\n")
-	h1.cmd("xterm -T h1 -l -lf output/test3/h1.txt -hold -e iperf -c 10.0.0.5 -p 5001 -b 2M -i 5 -t 30 &")
+	h1.cmd("xterm -T h1 -l -lf output/test3/h1.txt -hold -e iperf -c 10.0.0.5 -p 5001 -b 2M -i 5 -t 35 &")
 	time.sleep(5)
 
 	info("*** Started iperf client on h2\n")
@@ -105,7 +105,7 @@ def run_test(net):
 	time.sleep(10)
 	
 	info("*** Restarted iperf client on h4\n")
-	h4.cmd("xterm -T h4_b -l -lf output/test3/h4_b.txt -hold -e iperf -c 10.0.0.5 -p 5001 -b 3.5M -i 5 -t 5 &")
+	h4.cmd("xterm -T h4_b -l -lf output/test3/h4_b.txt -hold -e iperf -c 10.0.0.5 -p 5001 -b 3M -i 5 -t 5 &")
 
 
 if __name__ == '__main__':

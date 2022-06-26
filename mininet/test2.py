@@ -32,7 +32,7 @@ def configure_test() :
 		 "dpid-queue-switch": "00:00:00:00:00:00:00:07",
 		 "src-addr": "10.0.0.1",
 		 "dst-addr": "10.0.0.5",
-		 "bandwidth": "7000"}
+		 "bandwidth": "5000"}
 		), headers=header))
 
 	print(requests.post(url_flows, data=json.dumps(
@@ -46,6 +46,7 @@ def configure_test() :
 def run_test(net):
 	h1 = net.getNodeByName('h1')
 	h2 = net.getNodeByName('h2')
+	h3 = net.getNodeByName('h3')
 	h5 = net.getNodeByName('h5')
 
 	# Configuring Flows
@@ -59,6 +60,9 @@ def run_test(net):
 	if os.path.exists("output/test2/h2.txt"):
 		os.remove("output/test2/h2.txt")
 
+	if os.path.exists("output/test2/h3.txt"):
+		os.remove("output/test2/h3.txt")
+
 	if os.path.exists("output/test2/h5.txt"):
 		os.remove("output/test2/h5.txt")
 
@@ -70,10 +74,13 @@ def run_test(net):
 	time.sleep(5)
 
 	info("*** Started iperf client on h1 to saturate link\n")
-	h1.cmd("xterm -T h1 -l -lf output/test2/h1.txt -hold -e iperf -c 10.0.0.5 -p 5001 -b 10M -i 5 -t 15 &")
+	h1.cmd("xterm -T h1 -l -lf output/test2/h1.txt -hold -e iperf -c 10.0.0.5 -p 5001 -b 5M -t 15 &")
 
 	info("*** Started iperf client on h2\n")
-	h2.cmd("xterm -T h2 -l -lf output/test2/h2.txt -hold -e iperf -c 10.0.0.5 -p 5001 -b 6M -i 5 -t 15 &")
+	h2.cmd("xterm -T h2 -l -lf output/test2/h2.txt -hold -e iperf -c 10.0.0.5 -p 5001 -b 6M -t 15 &")
+
+	info("*** Started iperf client on h3\n")
+	h2.cmd("xterm -T h3 -l -lf output/test2/h3.txt -hold -e iperf -c 10.0.0.5 -p 5001 -b 2M -t 15 &")
 
 
 if __name__ == '__main__':
