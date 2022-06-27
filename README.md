@@ -10,7 +10,7 @@ Checkout the [assignmenet](assignment.pdf) and the [report](report.pdf) for all 
 ## Repository structure
  - `floodlight` contains the code of the traffic prioritization floodlight module.
  - `mininet` contains the code to create an emulated network to test all the functionalities of the module. 
- - `docs` contains the assignement and the report of the project.
+ - `docs` contains the assignment and the report of the project.
  
 ## Setup instructions
 Clone this repository:
@@ -24,12 +24,7 @@ $ sudo apt-get update
 ```
 
 ### Floodlight
-1. Clone the Floodlight controller:
-```
-$ git clone https://github.com/floodlight/floodlight
-```
-
-2. Add the traffic prioritization module to the Floodlight controller:
+Add the traffic prioritization module to the Floodlight controller on your system:
 ```
 $ rsync -av $REPO_ROOT/floodlight/ $FLOODLIGHT_ROOT/
 ```
