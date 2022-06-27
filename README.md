@@ -18,11 +18,6 @@ Clone this repository:
 $ git clone https://github.com/edoardoruffoli/SDN-TrafficPrioritization
 ```
 
-Update apt-get:
-```
-$ sudo apt-get update
-```
-
 ### Floodlight
 Add the traffic prioritization module to the Floodlight controller on your system:
 ```
@@ -42,6 +37,7 @@ The following steps are mostly taken from https://github.com/CPqD/ofsoftswitch13
 
 1. Download build requirements:
 ```
+$ sudo apt-get update
 $ sudo apt-get install cmake libpcap-dev libxerces-c3.2 libxerces-c-dev libpcre3 libpcre3-dev flex bison pkg-config autoconf libtool libboost-dev
 ```
 
