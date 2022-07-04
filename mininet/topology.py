@@ -45,6 +45,7 @@ def main():
     menu.append_item(FunctionItem("Test B: QoS guarantees", action, args=[1]))
     menu.append_item(FunctionItem("Test C: Traffic Prioritization", action, args=[2]))
     menu.append_item(FunctionItem("Test D: Comprehensive tests", action, args=[3]))
+    menu.append_item(FunctionItem("Simulation without automatic Test", action, args=[-1]))
     menu.append_item(CommandItem("Clear Mininet Configuration", "sudo mn -c"))
 
     # Create a menu item that calls a function
@@ -89,10 +90,6 @@ def topology(test):
 
         info("*** Starting network\n")
         net.build()
-#       c1.start()
-#       s1.start([c1])
-#       s2.start([c1])
-#	s3.start([c1])
 	net.start()
 
         # Queues	
@@ -137,8 +134,3 @@ def topology(test):
 if __name__ == '__main__':
     	setLogLevel( 'info' )
     	main()
-#	test = 1
-#	if len(sys.argv) > 1:
-#		test = int(sys.argv[1])
-
-#    	topology(test)
