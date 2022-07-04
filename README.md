@@ -5,7 +5,7 @@ Systems @University of Pisa.
 
 ## Objective
 The objective of this project is to design and develop a Floodlight module that implements a traffic prioritization behaviour inside a network domain. The network should manage traffic flows according to the scenario "A. Traffic Prioritization" of paper [1]. 
-Checkout the [assignmenet](assignment.pdf) and the [report](report.pdf) for all the information about the project.
+Checkout the [assignment](docs/assignment.pdf) and the [report](docs/report.pdf) for all the information about the project.
 
 ## Repository structure
  - `floodlight` contains the code of the traffic prioritization floodlight module.
@@ -108,9 +108,10 @@ $ python topology.py
   │    1 - Test A: DSCP Remark                                              │
   │    2 - Test B: QoS guarantees                                           │
   │    3 - Test C: Traffic Prioritization                                   │
-  │    4 - Test D: Comprehensive tests                                      │
-  │    5 - Clear Mininet Configuration                                      │
-  │    6 - Exit                                                             │
+  │    4 - Test D: Comprehensive tests     
+       5 - Simulation without automatic test│
+  │    6 - Clear Mininet Configuration                                      │
+  │    7 - Exit                                                             │
   │                                                                         │
   │                                                                         │
   └─────────────────────────────────────────────────────────────────────────┘
